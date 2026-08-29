@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HireMe Pixels</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main>
+        <h1>HireMe Pixels</h1>
+
+        <div id="board-container">
+            <div id="board" aria-label="Pixel board"></div>
+        </div>
+    </main>
+
+    <div id="pixel-dialog" class="hidden">
+        <div class="pixel-info">
+            <div>
+                <span class="label">Position</span>
+                <span id="pixel-position"></span>
+            </div>
+
+            <div>
+                <span class="label">Last edited by</span>
+                <span id="pixel-user"></span>
+            </div>
+
+            <div>
+                <span class="label">Last changed</span>
+                <span id="pixel-time"></span>
+            </div>
+        </div>
+
+        <div class="pixel-editor">
+            <input
+                type="color"
+                id="color-picker"
+                value="#FFFFFF"
+            >
+
+            <button id="save-button" disabled>Save</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

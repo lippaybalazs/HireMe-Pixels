@@ -1,0 +1,127 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    min-height: 100%;
+    font-family: sans-serif;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+    background: #f2f2f2;
+}
+
+main {
+    width: min(90vw, 900px);
+}
+
+h1 {
+    margin-top: 0;
+    text-align: center;
+}
+
+#board-container {
+    width: 100%;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+}
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(100, 1fr);
+    grid-template-rows: repeat(100, 1fr);
+
+    width: min(90vw, 800px);
+    aspect-ratio: 1;
+
+    border: 1px solid #888;
+    background: white;
+}
+
+.pixel {
+    border: 0;
+    padding: 0;
+    margin: 0;
+
+    min-width: 0;
+    min-height: 0;
+
+    cursor: pointer;
+}
+
+.pixel.selected {
+    outline: 2px solid black;
+    outline-offset: -2px;
+    z-index: 1;
+}
+
+#pixel-dialog {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    transform: translateX(-50%);
+
+    width: min(90vw, 650px);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+
+    padding: 1rem 1.25rem;
+
+    background: white;
+    border: 1px solid #aaa;
+    border-radius: 8px;
+
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+#pixel-dialog.hidden {
+    display: none;
+}
+
+.pixel-info {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.pixel-info > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.label {
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 0.2rem;
+}
+
+.pixel-editor {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#color-picker {
+    width: 42px;
+    height: 36px;
+    padding: 2px;
+}
+
+button {
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
