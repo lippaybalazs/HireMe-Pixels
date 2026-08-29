@@ -5,7 +5,9 @@ DB_USER := hireme_pixels
 DB_PASSWORD := hireme_pixels
 DB_PORT := 5432
 
-.PHONY: db-create db-start db-stop db-remove db-status db-logs db-shell db-migrate
+.PHONY: db-create db-start db-stop db-remove db-status db-logs db-shell db-migrate run check init test
+
+PYTHON ?= ".venv/bin/python"
 
 db-create:
 	docker run \
@@ -35,5 +37,17 @@ db-shell:
 	docker exec -it $(DB_CONTAINER) psql -U $(DB_USER) -d $(DB_NAME)
 
 db-migrate:
-	.venv/bin/python manage.py makemigrations
-	.venv/bin/python manage.py migrate
+	$(PYTHON) manage.py makemigrations
+	$(PYTHON) manage.py migrate
+
+run:
+	$(PYTHON) manage.py runserver
+
+check:
+	$(PYTHON) manage.py check
+
+init:
+	$(PYTHON) manage.py initialize_board
+
+test:
+	$(PYTHON) manage.py test
