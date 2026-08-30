@@ -8,6 +8,9 @@ from .models import Pixel, PixelHistory
 from .constants import BOARD_HEIGHT, BOARD_WIDTH
 from .serializers import PixelUpdateSerializer
 
+@api_view(["GET"])
+def health(request):
+    return Response({"status": "ok"})
 
 @api_view(["GET"])
 def pixels(request):
