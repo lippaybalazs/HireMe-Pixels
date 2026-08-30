@@ -10,6 +10,8 @@ jobs:
   backend-check:
     name: Backend / Check
     runs-on: ubuntu-latest
+    env:
+      PYTHON: python
 
     steps:
       - name: Checkout
@@ -33,6 +35,8 @@ jobs:
   backend-test:
     name: Backend / Test
     runs-on: ubuntu-latest
+    env:
+      PYTHON: python
 
     steps:
       - name: Checkout
@@ -56,6 +60,8 @@ jobs:
   backend-lint:
     name: Backend / Lint
     runs-on: ubuntu-latest
+    env:
+      PYTHON: python
 
     steps:
       - name: Checkout
@@ -79,6 +85,8 @@ jobs:
   backend-migrations:
     name: Backend / Migrations
     runs-on: ubuntu-latest
+    env:
+      PYTHON: python
 
     steps:
       - name: Checkout
