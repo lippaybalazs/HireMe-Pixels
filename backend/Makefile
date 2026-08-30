@@ -5,9 +5,10 @@ DB_USER := hireme_pixels
 DB_PASSWORD := hireme_pixels
 DB_PORT := 5432
 
-.PHONY: db-create db-start db-stop db-remove db-status db-logs db-shell db-migrate run check init test
+.PHONY: db-create db-start db-stop db-remove db-status db-logs db-shell db-migrate run check init test docker-build docker-run
 
 PYTHON ?= ".venv/bin/python"
+IMAGE_NAME ?= hireme-pixels-backend
 
 db-create:
 	docker run \
@@ -51,3 +52,19 @@ init:
 
 test:
 	$(PYTHON) manage.py test
+
+
+docker-build:
+	docker build -t $(IMAGE_NAME) .
+
+docker-run:
+	docker run --rm \
+		-p 8000:8000 \
+		--add-host=host.docker.internal:host-gateway \
+		-e DB_HOST=host.docker.internal \
+		-e DB_NAME=$(DB_NAME) \
+		-e DB_USER=$(DB_USER) \
+		-e DB_PASSWORD=$(DB_PASSWORD) \
+		-e DB_PORT=5432 \
+		$(IMAGE_NAME)
+	
