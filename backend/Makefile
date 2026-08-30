@@ -9,10 +9,14 @@ DB_PORT := 5432
 IMAGE_NAME := hireme-pixels-backend
 BACKEND_CONTAINER := hireme-pixels-backend
 
-.PHONY: start stop clean \
+MAKEFILE_PATH := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+PYTHON ?= ${MAKEFILE_PATH}/.venv/bin/python
+
+.PHONY: start stop clean logs \
 	db-create db-start db-stop db-remove db-status db-logs db-shell \
 	migrate init check test \
-	docker-build docker-run
+	docker-build docker-run \
+	lint format
 
 # ---------------------------------------------------------------------------
 # Lifecycle
@@ -31,7 +35,7 @@ clean: stop
 	$(MAKE) db-remove
 
 logs:
-	docker logs -f $(CONTAINER_NAME)
+	docker logs -f $(BACKEND_CONTAINER)
 
 # ---------------------------------------------------------------------------
 # Database
@@ -72,14 +76,18 @@ db-shell:
 # Django
 # ---------------------------------------------------------------------------
 
+
 migrate:
 	docker exec $(BACKEND_CONTAINER) python manage.py migrate
 
 init:
 	docker exec $(BACKEND_CONTAINER) python manage.py initialize_board
 
+makemigrations:
+	$(PYTHON) manage.py makemigrations
+
 check:
-	docker exec $(BACKEND_CONTAINER) python manage.py check
+	$(PYTHON) manage.py check
 
 test:
 	docker exec $(BACKEND_CONTAINER) python manage.py test
@@ -102,3 +110,14 @@ docker-run:
 		-e DB_PASSWORD=$(DB_PASSWORD) \
 		-e DB_PORT=$(DB_PORT) \
 		$(IMAGE_NAME)
+
+# ---------------------------------------------------------------------------
+# Lint
+# ---------------------------------------------------------------------------
+
+lint:
+	$(PYTHON) -m ruff check .
+
+format:
+	$(PYTHON) -m ruff format .
+	$(PYTHON) -m ruff check --fix .

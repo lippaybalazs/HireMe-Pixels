@@ -1,4 +1,4 @@
-.PHONY: start stop clean logs stop-local
+.PHONY: start stop clean logs stop-local lint format format-check
 
 start: stop stop-local
 	docker compose up -d --build --wait

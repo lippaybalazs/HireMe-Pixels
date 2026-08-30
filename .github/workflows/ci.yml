@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  backend-check:
+    name: Backend / Check
+    runs-on: ubuntu-latest
+    env:
+      PYTHON: python
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Django check
+        working-directory: backend
+        run: make check
+
+  backend-test:
+    name: Backend / Test
+    runs-on: ubuntu-latest
+    env:
+      PYTHON: python
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start backend
+        working-directory: backend
+        run: make start
+
+      - name: Run tests
+        working-directory: backend
+        run: make test
+
+  backend-lint:
+    name: Backend / Lint
+    runs-on: ubuntu-latest
+    env:
+      PYTHON: python
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Lint
+        working-directory: backend
+        run: make lint
+
+  backend-migrations:
+    name: Backend / Migrations
+    runs-on: ubuntu-latest
+    env:
+      PYTHON: python
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Check migrations
+        working-directory: backend
+        run: |
+          python manage.py makemigrations --check --dry-run
+
+  docker-build:
+    name: Docker / Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: docker compose build
+
+  docker-integration:
+    name: Docker / Integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start application
+        run: docker compose up -d --build --wait
+
+      - name: Check backend
+        run: curl --fail http://localhost:8000/api/health/
+
+      - name: Check frontend
+        run: curl --fail http://localhost:8080/
+
+      - name: Stop application
+        if: always()
+        run: docker compose down -v

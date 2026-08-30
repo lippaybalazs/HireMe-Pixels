@@ -7,7 +7,6 @@ from .models import Pixel, PixelHistory
 
 
 class PixelAPITests(APITestCase):
-
     def setUp(self):
         self.pixel = Pixel.objects.create(
             x=10,

@@ -18,36 +18,24 @@ class PixelUpdateSerializer(serializers.Serializer):
 
     def validate_x(self, value):
         if not 0 <= value < BOARD_WIDTH:
-            raise serializers.ValidationError(
-                f"x must be between 0 and {BOARD_WIDTH - 1}."
-            )
+            raise serializers.ValidationError(f"x must be between 0 and {BOARD_WIDTH - 1}.")
 
         return value
 
     def validate_y(self, value):
         if not 0 <= value < BOARD_HEIGHT:
-            raise serializers.ValidationError(
-                f"y must be between 0 and {BOARD_HEIGHT - 1}."
-            )
+            raise serializers.ValidationError(f"y must be between 0 and {BOARD_HEIGHT - 1}.")
 
         return value
 
     def validate_color(self, value):
-        if (
-            len(value) != 7
-            or not value.startswith("#")
-            or any(c not in "0123456789abcdefABCDEF" for c in value[1:])
-        ):
-            raise serializers.ValidationError(
-                "Color must be a hex color such as #FF0000."
-            )
+        if len(value) != 7 or not value.startswith("#") or any(c not in "0123456789abcdefABCDEF" for c in value[1:]):
+            raise serializers.ValidationError("Color must be a hex color such as #FF0000.")
 
         return value
 
     def validate_user(self, value):
         if not value.strip():
-            raise serializers.ValidationError(
-                "User cannot be empty."
-            )
+            raise serializers.ValidationError("User cannot be empty.")
 
         return value

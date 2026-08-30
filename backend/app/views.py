@@ -1,16 +1,18 @@
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
 from django.db import transaction
 from django.utils import timezone
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
-from .models import Pixel, PixelHistory
 from .constants import BOARD_HEIGHT, BOARD_WIDTH
+from .models import Pixel, PixelHistory
 from .serializers import PixelUpdateSerializer
+
 
 @api_view(["GET"])
 def health(request):
     return Response({"status": "ok"})
+
 
 @api_view(["GET"])
 def pixels(request):
@@ -21,11 +23,14 @@ def pixels(request):
     for pixel in pixels:
         grid[pixel.y][pixel.x] = pixel.color
 
-    return Response({
-        "width": BOARD_WIDTH,
-        "height": BOARD_HEIGHT,
-        "pixels": grid,
-    })
+    return Response(
+        {
+            "width": BOARD_WIDTH,
+            "height": BOARD_HEIGHT,
+            "pixels": grid,
+        }
+    )
+
 
 @api_view(["GET", "PUT"])
 def pixel(request):
@@ -53,13 +58,15 @@ def pixel(request):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response({
-            "x": pixel.x,
-            "y": pixel.y,
-            "color": pixel.color,
-            "user": pixel.user,
-            "changed_at": pixel.changed_at,
-        })
+        return Response(
+            {
+                "x": pixel.x,
+                "y": pixel.y,
+                "color": pixel.color,
+                "user": pixel.user,
+                "changed_at": pixel.changed_at,
+            }
+        )
 
     if request.method == "PUT":
         serializer = PixelUpdateSerializer(data=request.data)
@@ -99,10 +106,12 @@ def pixel(request):
             pixel.changed_at = now
             pixel.save()
 
-        return Response({
-            "x": pixel.x,
-            "y": pixel.y,
-            "color": pixel.color,
-            "user": pixel.user,
-            "changed_at": pixel.changed_at,
-        })
+        return Response(
+            {
+                "x": pixel.x,
+                "y": pixel.y,
+                "color": pixel.color,
+                "user": pixel.user,
+                "changed_at": pixel.changed_at,
+            }
+        )
