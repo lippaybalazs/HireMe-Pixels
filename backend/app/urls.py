@@ -1,7 +1,6 @@
 from django.urls import path
 
-from .views import pixels, pixel, health
-
+from .views import health, pixel, pixels
 
 urlpatterns = [
     path("health/", health),

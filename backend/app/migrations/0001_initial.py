@@ -4,36 +4,52 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Pixel',
+            name="Pixel",
             fields=[
-                ('pk', models.CompositePrimaryKey('x', 'y', blank=True, editable=False, primary_key=True, serialize=False)),
-                ('x', models.PositiveSmallIntegerField()),
-                ('y', models.PositiveSmallIntegerField()),
-                ('color', models.CharField(max_length=7)),
-                ('user', models.CharField(max_length=255)),
-                ('changed_at', models.DateTimeField()),
+                (
+                    "pk",
+                    models.CompositePrimaryKey(
+                        "x",
+                        "y",
+                        blank=True,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("x", models.PositiveSmallIntegerField()),
+                ("y", models.PositiveSmallIntegerField()),
+                ("color", models.CharField(max_length=7)),
+                ("user", models.CharField(max_length=255)),
+                ("changed_at", models.DateTimeField()),
             ],
         ),
         migrations.CreateModel(
-            name='PixelHistory',
+            name="PixelHistory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('x', models.PositiveSmallIntegerField()),
-                ('y', models.PositiveSmallIntegerField()),
-                ('color', models.CharField(max_length=7)),
-                ('user', models.CharField(max_length=255)),
-                ('changed_at', models.DateTimeField()),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("x", models.PositiveSmallIntegerField()),
+                ("y", models.PositiveSmallIntegerField()),
+                ("color", models.CharField(max_length=7)),
+                ("user", models.CharField(max_length=255)),
+                ("changed_at", models.DateTimeField()),
             ],
             options={
-                'indexes': [models.Index(fields=['changed_at'], name='pixel_history_time_idx')],
+                "indexes": [models.Index(fields=["changed_at"], name="pixel_history_time_idx")],
             },
         ),
     ]
