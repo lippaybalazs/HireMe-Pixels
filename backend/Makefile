@@ -76,18 +76,21 @@ db-shell:
 # Django
 # ---------------------------------------------------------------------------
 
+
 migrate:
-	$(PYTHON) manage.py makemigrations
-	$(PYTHON) manage.py migrate
+	docker exec $(BACKEND_CONTAINER) python manage.py migrate
 
 init:
-	$(PYTHON) manage.py initialize_board
+	docker exec $(BACKEND_CONTAINER) python manage.py initialize_board
+
+makemigrations:
+	$(PYTHON) manage.py makemigrations
 
 check:
 	$(PYTHON) manage.py check
 
 test:
-	$(PYTHON) manage.py test
+	docker exec $(BACKEND_CONTAINER) python manage.py test
 
 # ---------------------------------------------------------------------------
 # Docker
