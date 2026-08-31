@@ -101,34 +101,60 @@ jobs:
         run: |
           python manage.py makemigrations --check --dry-run
 
-  docker-build:
-    name: Docker / Build
+  kubernetes-integration:
+    name: Kubernetes / Integration
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up kind
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: hireme-pixels
 
       - name: Build Docker images
-        run: docker compose build
+        run: |
+          docker build -t hireme-pixels-backend:latest ./backend
+          docker build -t hireme-pixels-frontend:latest ./frontend
 
-  docker-integration:
-    name: Docker / Integration
-    runs-on: ubuntu-latest
+      - name: Load images into kind
+        run: |
+          kind load docker-image hireme-pixels-backend:latest --name hireme-pixels
+          kind load docker-image hireme-pixels-frontend:latest --name hireme-pixels
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Deploy application
+        run: |
+          kubectl apply -f k8s/postgres-secret.yaml
+          kubectl apply -f k8s/postgres.yaml
+          kubectl apply -f k8s/backend.yaml
+          kubectl apply -f k8s/frontend.yaml
 
-      - name: Start application
-        run: docker compose up -d --build --wait
+      - name: Wait for application
+        run: |
+          kubectl wait --for=condition=ready pod/postgres-0 --timeout=120s
+          kubectl wait --for=condition=available deployment/backend --timeout=120s
+          kubectl wait --for=condition=available deployment/frontend --timeout=120s
 
       - name: Check backend
-        run: curl --fail http://localhost:8000/api/health/
+        run: |
+          kubectl port-forward service/backend 8000:8000 &
+          sleep 2
+          curl --fail http://localhost:8000/api/health/
 
       - name: Check frontend
-        run: curl --fail http://localhost:8080/
+        run: |
+          kubectl port-forward service/frontend 8080:8080 &
+          sleep 2
+          curl --fail http://localhost:8080/
 
-      - name: Stop application
-        if: always()
-        run: docker compose down -v
+      - name: Show resources on failure
+        if: failure()
+        run: |
+          kubectl get pods -o wide
+          kubectl get services
+          kubectl describe pods
+          kubectl logs deployment/backend
+          kubectl logs deployment/frontend
+          kubectl logs postgres-0
