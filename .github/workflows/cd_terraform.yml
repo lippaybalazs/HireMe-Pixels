@@ -1,17 +1,19 @@
-name: Terraform CI
+name: Terraform CD
 
 on:
-  pull_request:
+  push:
+    branches:
+      - main
     paths:
       - "terraform/**"
-      - ".github/workflows/ci_terraform.yml"
-
-concurrency:
-  group: terraform-ci
-  cancel-in-progress: false
+      - ".github/workflows/cd_terraform.yml"
 
 permissions:
   contents: read
+
+concurrency:
+  group: terraform-production
+  cancel-in-progress: false
 
 jobs:
   terraform:
@@ -23,7 +25,7 @@ jobs:
 
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-      TF_WORKSPACE: ci
+      TF_WORKSPACE: production
 
     steps:
       - name: Checkout
@@ -43,7 +45,3 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-
-      - name: Terraform Destroy
-        if: always()
-        run: terraform destroy -auto-approve

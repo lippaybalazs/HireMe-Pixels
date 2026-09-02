@@ -3,7 +3,7 @@ terraform {
     organization = "lippaybalazs-HireMe-Pixels"
 
     workspaces {
-      name = "development" // Keep development default, CD will handle production
+      tags = ["hireme-pixels"]
     }
   }
 
