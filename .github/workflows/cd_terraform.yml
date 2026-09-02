@@ -1,12 +1,9 @@
-name: CI Terraform
+name: CD Terraform
 
 on:
   push:
     branches:
       - main
-    paths:
-      - "terraform/**"
-      - ".github/workflows/cd_terraform.yml"
 
 permissions:
   contents: read
