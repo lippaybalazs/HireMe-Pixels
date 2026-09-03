@@ -1,18 +1,17 @@
-name: CI Terraform
+name: CD
 
 on:
-  pull_request:
-    paths:
-      - "terraform/**"
-      - ".github/workflows/ci_terraform.yml"
-
-concurrency:
-  group: terraform-ci
-  cancel-in-progress: false
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: terraform-production
+  cancel-in-progress: false
 
 jobs:
   terraform:
@@ -24,7 +23,7 @@ jobs:
 
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-      TF_WORKSPACE: ci
+      TF_WORKSPACE: production
 
     steps:
       - name: Checkout
@@ -61,22 +60,24 @@ jobs:
       - name: Login to Azure Container Registry
         run: az acr login --name "${{ steps.acr.outputs.name }}"
 
-      - name: Build backend image
-        working-directory: .
-        run: docker build -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}" ./backend
+      - name: Tag backend image
+        run: |
+          docker tag \
+            "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}" \
+            "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:latest"
 
-      - name: Build frontend image
-        working-directory: .
-        run: docker build -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}" ./frontend
+      - name: Tag frontend image
+        run: |
+          docker tag \
+            "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}" \
+            "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:latest"
 
-      - name: Push backend image
-        working-directory: .
-        run: docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}"
+      - name: Push backend images
+        run: |
+          docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}"
+          docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:latest"
 
-      - name: Push frontend image
-        working-directory: .
-        run: docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}"
-
-      - name: Terraform Destroy
-        if: always()
-        run: terraform destroy -auto-approve
+      - name: Push frontend images
+        run: |
+          docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}"
+          docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:latest"
