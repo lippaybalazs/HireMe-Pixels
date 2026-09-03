@@ -12,6 +12,7 @@ concurrency:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   terraform:
@@ -43,6 +44,38 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+
+      - name: Get ACR details
+        id: acr
+        run: |
+          echo "name=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
+          echo "login_server=$(terraform output -raw acr_login_server)" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure Container Registry
+        run: az acr login --name "${{ steps.acr.outputs.name }}"
+
+      - name: Build backend image
+        working-directory: .
+        run: docker build -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}" ./backend
+
+      - name: Build frontend image
+        working-directory: .
+        run: docker build -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}" ./frontend
+
+      - name: Push backend image
+        working-directory: .
+        run: docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}"
+
+      - name: Push frontend image
+        working-directory: .
+        run: docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}"
 
       - name: Terraform Destroy
         if: always()
