@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-89_!pp2u#!*r=)(y)8k)1^m!d(*6rgo0d%9!7n094cmqn^%6t*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [host for host in os.environ.get("ALLOWED_HOSTS", "").split(",") if host]
 
 
 # Application definition
@@ -134,7 +134,9 @@ MAILERS = {
     },
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-]
+cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "")
+if cors_origins == "*":
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = []
+else:
+    CORS_ALLOWED_ORIGINS = [origin for origin in cors_origins.split(",") if origin]

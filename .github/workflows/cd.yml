@@ -4,17 +4,18 @@ on:
   push:
     branches:
       - main
+      - production
 
 permissions:
   contents: read
   id-token: write
 
 concurrency:
-  group: terraform-production
+  group: terraform-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  terraform:
+  deploy:
     runs-on: ubuntu-latest
 
     defaults:
@@ -23,7 +24,7 @@ jobs:
 
     env:
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-      TF_WORKSPACE: production
+      TF_WORKSPACE: ${{ github.ref_name == 'main' && 'development' || 'production' }}
 
     steps:
       - name: Checkout
@@ -41,8 +42,8 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
+      - name: Terraform Apply Foundation
+        run: terraform apply -auto-approve -var="deploy_apps=false"
 
       - name: Get ACR details
         id: acr
@@ -62,30 +63,29 @@ jobs:
 
       - name: Build backend image
         working-directory: .
-        run: docker build -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}" ./backend
+        run: |
+          docker build \
+            -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:latest" \
+            ./backend
 
       - name: Build frontend image
         working-directory: .
-        run: docker build -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}" ./frontend
-
-      - name: Tag backend image
         run: |
-          docker tag \
-            "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}" \
+          docker build \
+            -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:latest" \
+            ./frontend
+
+      - name: Push backend image
+        working-directory: .
+        run: |
+          docker push \
             "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:latest"
 
-      - name: Tag frontend image
+      - name: Push frontend image
+        working-directory: .
         run: |
-          docker tag \
-            "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}" \
+          docker push \
             "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:latest"
 
-      - name: Push backend images
-        run: |
-          docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}"
-          docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:latest"
-
-      - name: Push frontend images
-        run: |
-          docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}"
-          docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:latest"
+      - name: Terraform Apply Applications
+        run: terraform apply -auto-approve -var="deploy_apps=true"

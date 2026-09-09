@@ -8,7 +8,7 @@ on:
 
 concurrency:
   group: terraform-ci
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -42,8 +42,8 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
+      - name: Terraform Apply Foundation
+        run: terraform apply -auto-approve -var="deploy_apps=false"
 
       - name: Get ACR details
         id: acr
@@ -63,19 +63,32 @@ jobs:
 
       - name: Build backend image
         working-directory: .
-        run: docker build -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}" ./backend
+        run: |
+          docker build \
+            -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:latest" \
+            ./backend
 
       - name: Build frontend image
         working-directory: .
-        run: docker build -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}" ./frontend
+        run: |
+          docker build \
+            -t "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:latest" \
+            ./frontend
 
       - name: Push backend image
         working-directory: .
-        run: docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:${{ github.sha }}"
+        run: |
+          docker push \
+            "${{ steps.acr.outputs.login_server }}/hireme-pixels-backend:latest"
 
       - name: Push frontend image
         working-directory: .
-        run: docker push "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:${{ github.sha }}"
+        run: |
+          docker push \
+            "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:latest"
+
+      - name: Terraform Apply Applications
+        run: terraform apply -auto-approve -var="deploy_apps=true"
 
       - name: Terraform Destroy
         if: always()
