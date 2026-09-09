@@ -91,6 +91,11 @@ resource "azurerm_container_app" "backend" {
         name  = "CORS_ALLOWED_ORIGINS"
         value = "*"
       }
+
+      env {
+        name  = "DEPLOYMENT_ID"
+        value = var.deployment_id
+      }
     }
 
     min_replicas = 1
@@ -138,6 +143,11 @@ resource "azurerm_container_app" "frontend" {
       env {
         name  = "API_URL"
         value = "https://${azurerm_container_app.backend[0].ingress[0].fqdn}/api"
+      }
+
+      env {
+        name  = "DEPLOYMENT_ID"
+        value = var.deployment_id
       }
     }
 
