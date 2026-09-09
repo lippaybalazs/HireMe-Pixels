@@ -18,6 +18,9 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
+          env:
+            - name: API_URL
+              value: "http://127.0.0.1:8000/api"
 
 ---
 apiVersion: v1
