@@ -84,7 +84,7 @@ resource "azurerm_container_app" "backend" {
 
       env {
         name  = "ALLOWED_HOSTS"
-        value = azurerm_container_app.backend[0].ingress[0].fqdn
+        value = "*"
       }
 
       env {
