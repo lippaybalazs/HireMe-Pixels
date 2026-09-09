@@ -88,4 +88,4 @@ jobs:
             "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:latest"
 
       - name: Terraform Apply Applications
-        run: terraform apply -auto-approve -var="deploy_apps=true -var="deployment_id=${{ github.sha }}"
+        run: terraform apply -auto-approve -var="deploy_apps=true" -var="deployment_id=${{ github.sha }}"
