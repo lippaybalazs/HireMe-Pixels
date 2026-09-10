@@ -39,3 +39,9 @@ variable "postgres_admin_password" {
   type        = string
   sensitive   = true
 }
+
+# Used to force redeploy docker images each push
+variable "deployment_id" {
+  type    = string
+  default = ""
+}
