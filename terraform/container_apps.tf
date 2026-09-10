@@ -106,7 +106,7 @@ resource "azurerm_container_app" "backend" {
 resource "azurerm_container_app" "frontend" {
   count = var.deploy_apps ? 1 : 0
 
-  name                         = "hp-pixels-${var.environment}-frontend"
+  name                         = "hp-${var.environment}-frontend"
   container_app_environment_id = azurerm_container_app_environment.main.id
   resource_group_name          = azurerm_resource_group.main.name
   revision_mode                = "Single"
