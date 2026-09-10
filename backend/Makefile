@@ -23,7 +23,6 @@ PYTHON ?= ${MAKEFILE_PATH}/.venv/bin/python
 # ---------------------------------------------------------------------------
 
 start: stop db-start docker-build docker-run
-	$(MAKE) migrate
 	$(MAKE) init
 
 stop:
