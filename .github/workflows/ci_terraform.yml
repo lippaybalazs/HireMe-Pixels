@@ -114,23 +114,69 @@ jobs:
 
       - name: Verify custom domain bindings
         run: |
-          backend_binding=$(az containerapp show \
-            --name "hp-${{ env.TF_WORKSPACE }}-backend" \
-            --resource-group "hireme-pixels-${{ env.TF_WORKSPACE }}" \
-            --query "properties.configuration.ingress.customDomains[?name=='${{ steps.deployment.outputs.backend_hostname }}'].bindingType" \
-            -o tsv)
+          for i in {1..30}; do
+            backend_binding=$(az containerapp show \
+              --name "hp-${{ env.TF_WORKSPACE }}-backend" \
+              --resource-group "hireme-pixels-${{ env.TF_WORKSPACE }}" \
+              --query "properties.configuration.ingress.customDomains[?name=='${{ steps.deployment.outputs.backend_hostname }}'].bindingType" \
+              -o tsv)
 
-          frontend_binding=$(az containerapp show \
-            --name "hp-${{ env.TF_WORKSPACE }}-frontend" \
-            --resource-group "hireme-pixels-${{ env.TF_WORKSPACE }}" \
-            --query "properties.configuration.ingress.customDomains[?name=='${{ steps.deployment.outputs.frontend_hostname }}'].bindingType" \
-            -o tsv)
+            frontend_binding=$(az containerapp show \
+              --name "hp-${{ env.TF_WORKSPACE }}-frontend" \
+              --resource-group "hireme-pixels-${{ env.TF_WORKSPACE }}" \
+              --query "properties.configuration.ingress.customDomains[?name=='${{ steps.deployment.outputs.frontend_hostname }}'].bindingType" \
+              -o tsv)
 
-          echo "Backend binding: $backend_binding"
-          echo "Frontend binding: $frontend_binding"
+            echo "Attempt $i/30"
+            echo "Backend binding:  $backend_binding"
+            echo "Frontend binding: $frontend_binding"
 
-          test "$backend_binding" = "SniEnabled"
-          test "$frontend_binding" = "SniEnabled"
+            if [ "$backend_binding" = "SniEnabled" ] &&
+               [ "$frontend_binding" = "SniEnabled" ]; then
+              echo "Custom domain bindings are ready."
+              break
+            fi
+
+            if [ "$i" -eq 30 ]; then
+              echo "Custom domain bindings did not become ready."
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          echo "Waiting for Container Apps provisioning state..."
+
+          for i in {1..30}; do
+            backend_state=$(az containerapp show \
+              --name "hp-${{ env.TF_WORKSPACE }}-backend" \
+              --resource-group "hireme-pixels-${{ env.TF_WORKSPACE }}" \
+              --query "properties.provisioningState" \
+              -o tsv)
+
+            frontend_state=$(az containerapp show \
+              --name "hp-${{ env.TF_WORKSPACE }}-frontend" \
+              --resource-group "hireme-pixels-${{ env.TF_WORKSPACE }}" \
+              --query "properties.provisioningState" \
+              -o tsv)
+
+            echo "Attempt $i/30"
+            echo "Backend state:  $backend_state"
+            echo "Frontend state: $frontend_state"
+
+            if [ "$backend_state" = "Succeeded" ] &&
+               [ "$frontend_state" = "Succeeded" ]; then
+              echo "Container Apps are ready."
+              break
+            fi
+
+            if [ "$i" -eq 30 ]; then
+              echo "Container Apps did not reach Succeeded state."
+              exit 1
+            fi
+
+            sleep 10
+          done
 
       - name: Terraform Destroy
         if: always()
