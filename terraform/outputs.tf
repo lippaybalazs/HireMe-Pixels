@@ -17,3 +17,13 @@ output "postgres_database" {
   description = "PostgreSQL database name."
   value       = azurerm_postgresql_flexible_server_database.main.name
 }
+
+output "frontend_hostname" {
+  description = "Public hostname for the frontend."
+  value       = var.frontend_hostname
+}
+
+output "backend_hostname" {
+  description = "Public hostname for the backend."
+  value       = var.backend_hostname
+}
