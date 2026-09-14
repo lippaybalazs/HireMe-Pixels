@@ -92,7 +92,7 @@ jobs:
       - name: Terraform Apply Applications
         run: terraform apply -auto-approve -var="deploy_apps=true" -var="deployment_id=${{ github.sha }}"
 
-      # https://github.com/hashicorp/terraform-provider-azurerm/issues/27362?utm_source=chatgpt.com
+      # https://github.com/hashicorp/terraform-provider-azurerm/issues/27362
       # terraform silently fails at this, so we do it by hand
       - name: Bind backend custom domain
         run: |
