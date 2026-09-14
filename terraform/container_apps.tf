@@ -84,12 +84,12 @@ resource "azurerm_container_app" "backend" {
 
       env {
         name  = "ALLOWED_HOSTS"
-        value = "*"
+        value = var.backend_hostname
       }
 
       env {
         name  = "CORS_ALLOWED_ORIGINS"
-        value = "*"
+        value = "https://${var.frontend_hostname}"
       }
 
       env {
@@ -142,7 +142,7 @@ resource "azurerm_container_app" "frontend" {
 
       env {
         name  = "API_URL"
-        value = "https://${azurerm_container_app.backend[0].ingress[0].fqdn}/api"
+        value = "https://${var.backend_hostname}/api"
       }
 
       env {

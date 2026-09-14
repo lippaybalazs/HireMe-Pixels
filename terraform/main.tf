@@ -41,3 +41,8 @@ resource "azurerm_role_assignment" "acr_push" {
   role_definition_name = "AcrPush"
   principal_id         = data.azurerm_client_config.current.object_id
 }
+
+data "azurerm_dns_zone" "lippay" {
+  name                = "lippay.ro"
+  resource_group_name = "lippay-dns"
+}

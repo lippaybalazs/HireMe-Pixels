@@ -45,3 +45,13 @@ variable "deployment_id" {
   type    = string
   default = ""
 }
+
+variable "frontend_hostname" {
+  description = "Public hostname for the frontend."
+  type        = string
+}
+
+variable "backend_hostname" {
+  description = "Public hostname for the backend."
+  type        = string
+}
