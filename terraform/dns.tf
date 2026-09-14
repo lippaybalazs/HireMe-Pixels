@@ -52,6 +52,8 @@ resource "azurerm_container_app_custom_domain" "frontend" {
   name             = var.frontend_hostname
   container_app_id = azurerm_container_app.frontend[0].id
 
+  certificate_binding_type = "SniEnabled"
+
   depends_on = [
     azurerm_dns_cname_record.frontend,
     azurerm_dns_txt_record.frontend_verification,
@@ -59,7 +61,6 @@ resource "azurerm_container_app_custom_domain" "frontend" {
 
   lifecycle {
     ignore_changes = [
-      certificate_binding_type,
       container_app_environment_certificate_id,
     ]
   }
@@ -71,6 +72,8 @@ resource "azurerm_container_app_custom_domain" "backend" {
   name             = var.backend_hostname
   container_app_id = azurerm_container_app.backend[0].id
 
+  certificate_binding_type = "SniEnabled"
+
   depends_on = [
     azurerm_dns_cname_record.backend,
     azurerm_dns_txt_record.backend_verification,
@@ -78,7 +81,6 @@ resource "azurerm_container_app_custom_domain" "backend" {
 
   lifecycle {
     ignore_changes = [
-      certificate_binding_type,
       container_app_environment_certificate_id,
     ]
   }
