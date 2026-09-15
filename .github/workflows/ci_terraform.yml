@@ -1,114 +1,113 @@
 name: CI Terraform
 
 on:
-pull_request:
-paths:
-- "terraform/**"
-- ".github/workflows/ci_terraform.yml"
+  pull_request:
+    paths:
+      - "terraform/**"
+      - ".github/workflows/ci_terraform.yml"
 
 concurrency:
-group: terraform-ci
-cancel-in-progress: true
+  group: terraform-ci
+  cancel-in-progress: true
 
 permissions:
-contents: read
-id-token: write
+  contents: read
+  id-token: write
 
 jobs:
-terraform:
-runs-on: ubuntu-latest
+  terraform:
+    runs-on: ubuntu-latest
 
-```
-defaults:
-  run:
-    working-directory: terraform
+    defaults:
+      run:
+        working-directory: terraform
 
-env:
-  TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-  TF_WORKSPACE: ci
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_WORKSPACE: ci
 
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  - name: Setup Terraform
-    uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-  - name: Terraform Init
-    run: terraform init
+      - name: Terraform Init
+        run: terraform init
 
-  - name: Terraform Format Check
-    run: terraform fmt -check
+      - name: Terraform Format Check
+        run: terraform fmt -check
 
-  - name: Terraform Validate
-    run: terraform validate
+      - name: Terraform Validate
+        run: terraform validate
 
-  - name: Terraform Apply Foundation
-    run: terraform apply -auto-approve -var="deploy_apps=false"
+      - name: Terraform Apply Foundation
+        run: terraform apply -auto-approve -var="deploy_apps=false"
 
-  - name: Get deployment details
-    id: deployment
-    run: |
-      echo "acr_name=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
-      echo "acr_login_server=$(terraform output -raw acr_login_server)" >> "$GITHUB_OUTPUT"
-      echo "frontend_hostname=$(terraform output -raw frontend_hostname)" >> "$GITHUB_OUTPUT"
-      echo "backend_hostname=$(terraform output -raw backend_hostname)" >> "$GITHUB_OUTPUT"
+      - name: Get deployment details
+        id: deployment
+        run: |
+          echo "acr_name=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
+          echo "acr_login_server=$(terraform output -raw acr_login_server)" >> "$GITHUB_OUTPUT"
+          echo "frontend_hostname=$(terraform output -raw frontend_hostname)" >> "$GITHUB_OUTPUT"
+          echo "backend_hostname=$(terraform output -raw backend_hostname)" >> "$GITHUB_OUTPUT"
 
-  - name: Login to Azure
-    uses: azure/login@v2
-    with:
-      client-id: ${{ vars.AZURE_CLIENT_ID }}
-      tenant-id: ${{ vars.AZURE_TENANT_ID }}
-      subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-  - name: Login to Azure Container Registry
-    run: az acr login --name "${{ steps.deployment.outputs.acr_name }}"
+      - name: Login to Azure Container Registry
+        run: az acr login --name "${{ steps.deployment.outputs.acr_name }}"
 
-  - name: Build backend image
-    working-directory: .
-    run: |
-      docker build \
-        -t "${{ steps.deployment.outputs.acr_login_server }}/hireme-pixels-backend:latest" \
-        ./backend
+      - name: Build backend image
+        working-directory: .
+        run: |
+          docker build \
+            -t "${{ steps.deployment.outputs.acr_login_server }}/hireme-pixels-backend:latest" \
+            ./backend
 
-  - name: Build frontend image
-    working-directory: .
-    run: |
-      docker build \
-        -t "${{ steps.deployment.outputs.acr_login_server }}/hireme-pixels-frontend:latest" \
-        ./frontend
+      - name: Build frontend image
+        working-directory: .
+        run: |
+          docker build \
+            -t "${{ steps.deployment.outputs.acr_login_server }}/hireme-pixels-frontend:latest" \
+            ./frontend
 
-  - name: Push backend image
-    working-directory: .
-    run: |
-      docker push \
-        "${{ steps.deployment.outputs.acr_login_server }}/hireme-pixels-backend:latest"
+      - name: Push backend image
+        working-directory: .
+        run: |
+          docker push \
+            "${{ steps.deployment.outputs.acr_login_server }}/hireme-pixels-backend:latest"
 
-  - name: Push frontend image
-    working-directory: .
-    run: |
-      docker push \
-        "${{ steps.deployment.outputs.acr_login_server }}/hireme-pixels-frontend:latest"
+      - name: Push frontend image
+        working-directory: .
+        run: |
+          docker push \
+            "${{ steps.deployment.outputs.acr_login_server }}/hireme-pixels-frontend:latest"
 
-  - name: Terraform Apply Applications
-    run: terraform apply -auto-approve -var="deploy_apps=true" -var="deployment_id=${{ github.sha }}"
+      - name: Terraform Apply Applications
+        run: terraform apply -auto-approve -var="deploy_apps=true" -var="deployment_id=${{ github.sha }}"
 
-  - name: Check custom domain certificates
-    run: |
-      echo "Backend:"
-      az containerapp show \
-        --name "hp-${{ env.TF_WORKSPACE }}-backend" \
-        --resource-group "hireme-pixels-${{ env.TF_WORKSPACE }}" \
-        --query "properties.configuration.ingress.customDomains" \
-        -o json
+      - name: Check custom domain certificates
+        run: |
+          echo "Backend:"
+          az containerapp show \
+            --name "hp-${{ env.TF_WORKSPACE }}-backend" \
+            --resource-group "hireme-pixels-${{ env.TF_WORKSPACE }}" \
+            --query "properties.configuration.ingress.customDomains" \
+            -o json
 
-      echo "Frontend:"
-      az containerapp show \
-        --name "hp-${{ env.TF_WORKSPACE }}-frontend" \
-        --resource-group "hireme-pixels-${{ env.TF_WORKSPACE }}" \
-        --query "properties.configuration.ingress.customDomains" \
-        -o json
+          echo "Frontend:"
+          az containerapp show \
+            --name "hp-${{ env.TF_WORKSPACE }}-frontend" \
+            --resource-group "hireme-pixels-${{ env.TF_WORKSPACE }}" \
+            --query "properties.configuration.ingress.customDomains" \
+            -o json
 
-  - name: Terraform Destroy
-    if: always()
-    run: terraform destroy -auto-approve
+      - name: Terraform Destroy
+        if: always()
+        run: terraform destroy -auto-approve
