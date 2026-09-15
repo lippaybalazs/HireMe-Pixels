@@ -90,43 +90,6 @@ jobs:
       - name: Terraform Apply Applications
         run: terraform apply -auto-approve -var="deploy_apps=true" -var="deployment_id=${{ github.sha }}"
 
-      - name: Check custom domain bindings
-        working-directory: .
-        run: |
-          echo "Backend custom domains:"
-          az containerapp show \
-            --name hp-ci-backend \
-            --resource-group hireme-pixels-ci \
-            --query "properties.configuration.ingress.customDomains" \
-            -o json
-
-          echo "Frontend custom domains:"
-          az containerapp show \
-            --name hp-ci-frontend \
-            --resource-group hireme-pixels-ci \
-            --query "properties.configuration.ingress.customDomains" \
-            -o json
-
-      - name: Terraform Apply Applications Again
-        run: terraform apply -auto-approve -var="deploy_apps=true" -var="deployment_id=${{ github.sha }}"
-
-      - name: Check custom domain bindings Again
-        working-directory: .
-        run: |
-          echo "Backend custom domains after second apply:"
-          az containerapp show \
-            --name hp-ci-backend \
-            --resource-group hireme-pixels-ci \
-            --query "properties.configuration.ingress.customDomains" \
-            -o json
-
-          echo "Frontend custom domains after second apply:"
-          az containerapp show \
-            --name hp-ci-frontend \
-            --resource-group hireme-pixels-ci \
-            --query "properties.configuration.ingress.customDomains" \
-            -o json
-
       - name: Terraform Destroy
         if: always()
         run: terraform destroy -auto-approve
