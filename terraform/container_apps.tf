@@ -132,6 +132,11 @@ resource "azurerm_container_app" "backend" {
         name  = "FRONTEND_URL"
         value = "https://${var.frontend_hostname}"
       }
+
+      env {
+        name  = "ENTRA_ADMIN_GROUP_ID"
+        value = var.ENTRA_ADMIN_GROUP_ID
+      }
     }
 
     min_replicas = 1

@@ -57,6 +57,11 @@ variable "backend_hostname" {
   type        = string
 }
 
+variable "ENTRA_ADMIN_GROUP_ID" {
+  description = "Admin group id"
+  type        = string
+}
+
 variable "entra_credential_end_date" {
   type = string
 }

@@ -9,6 +9,7 @@ let board = [];
 let selectedPixel = null;
 let originalColor = null;
 
+let isAdmin = false;
 
 const boardElement = document.getElementById("board");
 const dialogElement = document.getElementById("pixel-dialog");
@@ -70,6 +71,11 @@ async function loadCurrentUser() {
 
     currentUser = data.authenticated ? data.username : null;
     csrfToken = data.authenticated ? data.csrf_token : null;
+    isAdmin = data.authenticated ? data.is_admin : false;
+
+    if (isAdmin) {
+        console.log("User is a HireMe-Pixels admin.");
+    }
 
     updateAuthUI();
 }

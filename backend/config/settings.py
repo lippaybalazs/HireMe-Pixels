@@ -23,6 +23,8 @@ ENTRA_TENANT_ID = os.environ.get("ENTRA_TENANT_ID","")
 BACKEND_HOSTNAME = os.environ.get("BACKEND_HOSTNAME","")
 FRONTEND_URL = os.environ.get("FRONTEND_URL","")
 
+ENTRA_ADMIN_GROUP_ID = os.environ.get("ENTRA_ADMIN_GROUP_ID","")
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 

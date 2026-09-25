@@ -1,6 +1,8 @@
 resource "azuread_application" "main" {
   display_name = "HireMe-Pixels"
 
+  group_membership_claims = ["SecurityGroup"]
+  
   web {
     redirect_uris = [
       "https://${var.backend_hostname}/api/auth/callback/"

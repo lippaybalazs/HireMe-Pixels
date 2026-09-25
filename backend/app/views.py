@@ -64,6 +64,7 @@ def callback(request):
     oid = claims["oid"] 
     email = claims.get("preferred_username", "") 
     name = claims.get("name", "") 
+    groups = claims.get("groups", [])
     identity = EntraIdentity.objects.select_related("user").filter(oid=oid).first() 
 
     if identity: 
@@ -86,8 +87,12 @@ def callback(request):
                 oid=oid,
                 email=email,
             )
-
+    
     django_login(request, user)
+
+    request.session["is_admin"] = (
+        settings.ENTRA_ADMIN_GROUP_ID in groups
+    )
 
     request.session.pop("auth_flow", None)
 
@@ -163,17 +168,22 @@ def logout(request):
 def me(request):
     if not request.user.is_authenticated:
         return Response(
-            {"authenticated": False},
+            {
+                "authenticated": False,
+                "is_admin": False,
+            },
             status=status.HTTP_200_OK,
         )
 
     return Response(
-        {
-            "authenticated": True,
-            "username": request.user.username,
-            "csrf_token": get_token(request),
-        }
-    )
+    {
+        "authenticated": True,
+        "username": request.user.username,
+        "csrf_token": get_token(request),
+        "is_admin": request.session.get("is_admin", False),
+    }
+)
+
 
 
 @api_view(["GET"])
