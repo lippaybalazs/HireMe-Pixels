@@ -1,5 +1,7 @@
 const API_URL = window.API_URL;
 
+let currentUser = null;
+let csrfToken  = null;
 let boardWidth = 0;
 let boardHeight = 0;
 let board = [];
@@ -17,6 +19,60 @@ const timeElement = document.getElementById("pixel-time");
 
 const colorPicker = document.getElementById("color-picker");
 const saveButton = document.getElementById("save-button");
+
+const loginDialogElement = document.getElementById("login-dialog");
+const loginUsername = document.getElementById("login-username");
+const loginPassword = document.getElementById("login-password");
+const loginButton = document.getElementById("login-button");
+const registerButton = document.getElementById("register-button");
+const microsoftLoginButton = document.getElementById("microsoft-login-button");
+
+const logoutButton = document.getElementById("logout-button");
+const loadingOverlay = document.getElementById("loading-overlay");
+
+function showLoading() {
+    loadingOverlay.classList.remove("hidden");
+}
+
+function hideLoading() {
+    loadingOverlay.classList.add("hidden");
+}
+
+function updateAuthUI() {
+    if (currentUser) {
+        logoutButton.classList.remove("hidden");
+    } else {
+        logoutButton.classList.add("hidden");
+    }
+}
+
+function showLoginDialog() {
+    loginDialogElement.classList.remove("hidden");
+    loginUsername.focus();
+}
+
+function hideLoginDialog() {
+    loginDialogElement.classList.add("hidden");
+}
+
+async function loadCurrentUser() {
+    const response = await fetch(`${API_URL}/auth/me/`, {
+        credentials: "include",
+    });
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to load authentication state: ${response.status}`
+        );
+    }
+
+    const data = await response.json();
+
+    currentUser = data.authenticated ? data.username : null;
+    csrfToken = data.authenticated ? data.csrf_token : null;
+
+    updateAuthUI();
+}
 
 
 async function loadBoard() {
@@ -64,6 +120,67 @@ function renderBoard() {
     }
 }
 
+async function saveSelectedPixel() {
+    if (!selectedPixel || originalColor === null) {
+        return;
+    }
+
+    const color = colorPicker.value;
+
+    saveButton.disabled = true;
+
+    try {
+        const response = await fetch(`${API_URL}/pixel/`, {
+            method: "PUT",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
+            },
+            body: JSON.stringify({
+                x: selectedPixel.x,
+                y: selectedPixel.y,
+                color: color,
+            }),
+        });
+
+        if (response.status === 401) {
+            saveButton.disabled = false;
+            showLoginDialog();
+            return;
+        }
+
+        if (!response.ok) {
+            const error = await response.json();
+
+            throw new Error(
+                error.error || "Failed to update pixel."
+            );
+        }
+
+        const pixel = await response.json();
+
+        board[pixel.y][pixel.x] = pixel.color;
+
+        showPixelDialog(pixel);
+
+    } catch (error) {
+        console.error(error);
+
+        alert(error.message);
+
+        const pixel = getPixelElement(
+            selectedPixel.x,
+            selectedPixel.y
+        );
+
+        if (pixel) {
+            pixel.style.backgroundColor = originalColor;
+        }
+
+        colorPicker.value = originalColor;
+    }
+}
 
 async function selectPixel(x, y) {
     if (selectedPixel && selectedPixel.x === x && selectedPixel.y === y) {
@@ -91,8 +208,10 @@ async function selectPixel(x, y) {
     updateSelectedPixelBorder();
 
     try {
-        const response = await fetch(
-            `${API_URL}/pixel/?x=${x}&y=${y}`
+        const response = await fetch(`${API_URL}/pixel/?x=${x}&y=${y}`,
+            {
+                credentials: "include",
+            }
         );
 
         if (!response.ok) {
@@ -207,96 +326,126 @@ colorPicker.addEventListener("input", () => {
     );
 });
 
-
 saveButton.addEventListener("click", async () => {
-    if (!selectedPixel || originalColor === null) {
-        return;
-    }
+    await saveSelectedPixel();
+});
 
-    const color = colorPicker.value;
-    const user = getUserName();
-
-    if (!user) {
-        return;
-    }
-
-    saveButton.disabled = true;
+loginButton.addEventListener("click", async () => {
+    showLoading();
 
     try {
-        const response = await fetch(`${API_URL}/pixel/`, {
-            method: "PUT",
+        const response = await fetch(`${API_URL}/auth/login/`, {
+            method: "POST",
+            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                x: selectedPixel.x,
-                y: selectedPixel.y,
-                color: color,
-                user: user,
+                username: loginUsername.value,
+                password: loginPassword.value,
             }),
         });
 
-        if (!response.ok) {
-            const error = await response.json();
+        const data = await response.json();
 
-            throw new Error(
-                error.error || "Failed to update pixel."
-            );
+        if (!response.ok) {
+            alert(data.error || "Login failed.");
+            return;
         }
 
-        const pixel = await response.json();
-
-        board[pixel.y][pixel.x] = pixel.color;
-
-        showPixelDialog(pixel);
+        window.location.reload();
 
     } catch (error) {
         console.error(error);
+        alert("Login failed.");
 
-        alert(error.message);
+    } finally {
+        hideLoading();
+    }
 
-        const pixel = getPixelElement(
-            selectedPixel.x,
-            selectedPixel.y
-        );
+});
 
-        if (pixel) {
-            pixel.style.backgroundColor = originalColor;
+registerButton.addEventListener("click", async () => {
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_URL}/auth/register/`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                username: loginUsername.value,
+                password: loginPassword.value,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert(data.error || "Registration failed.");
+            return;
         }
 
-        colorPicker.value = originalColor;
-        saveButton.disabled = true;
+        window.location.reload();
+
+    } catch (error) {
+        console.error(error);
+        alert("Registration failed.");
+
+    } finally {
+        hideLoading();
     }
+
+});
+
+microsoftLoginButton.addEventListener("click", () => {
+    showLoading();
+    window.location.href = `${API_URL}/auth/microsoft/`;
+});
+
+logoutButton.addEventListener("click", async () => {
+    showLoading();
+
+    try {
+        const response = await fetch(`${API_URL}/auth/logout/`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "X-CSRFToken": csrfToken,
+            },
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || "Logout failed.");
+        }
+
+        currentUser = null;
+        csrfToken = null;
+
+        updateAuthUI();
+
+        window.location.reload();
+
+    } catch (error) {
+        console.error(error);
+        alert(error.message || "Logout failed.");
+
+    } finally {
+        hideLoading();
+    }
+
 });
 
 
-function getUserName() {
-    let user = localStorage.getItem("hireme-pixels-user");
-
-    if (!user) {
-        user = prompt("Enter your name:");
-
-        if (!user) {
-            return null;
-        }
-
-        user = user.trim();
-
-        if (!user) {
-            return null;
-        }
-
-        localStorage.setItem(
-            "hireme-pixels-user",
-            user
-        );
-    }
-
-    return user;
+async function initialize() {
+    await loadCurrentUser();
+    await loadBoard();
 }
 
-
-loadBoard().catch(error => {
+initialize().catch(error => {
     console.error(error);
 
     boardElement.textContent =

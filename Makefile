@@ -69,3 +69,20 @@ k8s-clean:
 stop-local:
 	$(MAKE) -C backend stop
 	$(MAKE) -C frontend stop
+
+push-local:
+	@ACR=$$(terraform -chdir=terraform output -raw acr_login_server); \
+	az acr login --name $$(terraform -chdir=terraform output -raw acr_name); \
+	docker build -t $$ACR/hireme-pixels-backend:latest ./backend; \
+	docker build -t $$ACR/hireme-pixels-frontend:latest ./frontend; \
+	docker push $$ACR/hireme-pixels-backend:latest; \
+	docker push $$ACR/hireme-pixels-frontend:latest
+
+apply-pre:
+	terraform -chdir=terraform apply \
+		-var="deploy_apps=false"
+
+apply:
+	terraform -chdir=terraform apply \
+		-var="deploy_apps=true" \
+		-var="deployment_id=$$(date +%s)"

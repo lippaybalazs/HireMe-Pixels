@@ -1,10 +1,11 @@
 variable "environment" {
   description = "Deployment environment."
   type        = string
+  default     = "local"
 
   validation {
-    condition     = contains(["development", "production", "ci"], var.environment)
-    error_message = "Environment must be either development or production."
+    condition     = contains(["development", "production", "ci", "local"], var.environment)
+    error_message = "Environment must be either development, production, ci or local."
   }
 }
 
@@ -54,4 +55,8 @@ variable "frontend_hostname" {
 variable "backend_hostname" {
   description = "Public hostname for the backend."
   type        = string
+}
+
+variable "entra_credential_end_date" {
+  type = string
 }

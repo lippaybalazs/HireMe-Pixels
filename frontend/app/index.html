@@ -44,6 +44,51 @@
         </div>
     </div>
 
+    <div id="login-dialog" class="hidden">
+        <div class="login-modal">
+            <h2>Login</h2>
+
+            <input
+                id="login-username"
+                type="text"
+                placeholder="Username"
+                autocomplete="username"
+            >
+
+            <input
+                id="login-password"
+                type="password"
+                placeholder="Password"
+                autocomplete="current-password"
+            >
+
+            <button id="login-button" type="button">
+                Login
+            </button>
+
+            <button id="register-button" type="button">
+                Register
+            </button>
+
+            <div class="login-divider">
+                <span>or</span>
+            </div>
+
+            <button id="microsoft-login-button" type="button">
+                Login with Microsoft
+            </button>
+        </div>
+    </div>
+
+    <button id="logout-button" class="hidden" type="button">
+        Logout
+    </button>
+
+    <div id="loading-overlay" class="hidden">
+        <div class="loading-spinner"></div>
+    </div>
+
+
     <script src="config.js"></script>
     <script src="app.js"></script>
 </body>

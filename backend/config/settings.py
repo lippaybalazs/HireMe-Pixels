@@ -16,6 +16,12 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+ENTRA_CLIENT_ID = os.environ.get("ENTRA_CLIENT_ID","")
+ENTRA_CLIENT_SECRET = os.environ.get("ENTRA_CLIENT_SECRET","")
+ENTRA_TENANT_ID = os.environ.get("ENTRA_TENANT_ID","")
+
+BACKEND_HOSTNAME = os.environ.get("BACKEND_HOSTNAME","")
+FRONTEND_URL = os.environ.get("FRONTEND_URL","")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
@@ -138,5 +144,12 @@ cors_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "")
 if cors_origins == "*":
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOWED_ORIGINS = []
+    CSRF_TRUSTED_ORIGINS = []
 else:
     CORS_ALLOWED_ORIGINS = [origin for origin in cors_origins.split(",") if origin]
+    CSRF_TRUSTED_ORIGINS = [origin for origin in cors_origins.split(",") if origin]
+
+CORS_ALLOW_CREDENTIALS = True
+
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = True
