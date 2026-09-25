@@ -62,6 +62,11 @@ variable "ENTRA_ADMIN_GROUP_ID" {
   type        = string
 }
 
+variable "DJANGO_SECRET_KEY" {
+  description = "Django secret key"
+  type        = string
+}
+
 variable "entra_credential_end_date" {
   type = string
 }

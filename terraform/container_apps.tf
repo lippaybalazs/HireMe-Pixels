@@ -137,6 +137,11 @@ resource "azurerm_container_app" "backend" {
         name  = "ENTRA_ADMIN_GROUP_ID"
         value = var.ENTRA_ADMIN_GROUP_ID
       }
+
+      env {
+        name  = "DJANGO_SECRET_KEY"
+        value = var.DJANGO_SECRET_KEY
+      }
     }
 
     min_replicas = 1
