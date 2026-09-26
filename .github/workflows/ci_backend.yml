@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON: python
+      DJANGO_DEBUG: True
 
     steps:
       - name: Checkout
@@ -37,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON: python
+      DJANGO_DEBUG: True
 
     steps:
       - name: Checkout
@@ -55,6 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON: python
+      DJANGO_DEBUG: True
 
     steps:
       - name: Checkout
@@ -80,6 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHON: python
+      DJANGO_DEBUG: True
 
     steps:
       - name: Checkout
