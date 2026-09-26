@@ -20,7 +20,7 @@ spec:
             - containerPort: 8000
           env:
             - name: DJANGO_DEBUG
-              value: True
+              value: "True"
             - name: DB_HOST
               value: postgres
             - name: DB_PORT
