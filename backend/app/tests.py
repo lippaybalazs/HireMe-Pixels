@@ -325,9 +325,7 @@ class AuthenticationAPITests(APITestCase):
             "alice",
         )
 
-        self.assertTrue(
-            User.objects.filter(username="alice").exists()
-        )
+        self.assertTrue(User.objects.filter(username="alice").exists())
 
     def test_register_duplicate_username(self):
         User.objects.create_user(
@@ -454,9 +452,7 @@ class AuthenticationAPITests(APITestCase):
             status.HTTP_200_OK,
         )
 
-        self.assertTrue(
-            response.data["authenticated"]
-        )
+        self.assertTrue(response.data["authenticated"])
 
         self.assertEqual(
             response.data["username"],
@@ -468,9 +464,7 @@ class AuthenticationAPITests(APITestCase):
             "local",
         )
 
-        self.assertFalse(
-            response.data["is_admin"]
-        )
+        self.assertFalse(response.data["is_admin"])
 
         self.assertIn(
             "csrf_token",
@@ -485,13 +479,9 @@ class AuthenticationAPITests(APITestCase):
             status.HTTP_200_OK,
         )
 
-        self.assertFalse(
-            response.data["authenticated"]
-        )
+        self.assertFalse(response.data["authenticated"])
 
-        self.assertFalse(
-            response.data["is_admin"]
-        )
+        self.assertFalse(response.data["is_admin"])
 
     def test_logout(self):
         user = User.objects.create_user(
@@ -508,9 +498,7 @@ class AuthenticationAPITests(APITestCase):
             status.HTTP_200_OK,
         )
 
-        self.assertFalse(
-            response.data["authenticated"]
-        )
+        self.assertFalse(response.data["authenticated"])
 
     def test_me_microsoft_user(self):
         user = User.objects.create_user(
@@ -533,9 +521,7 @@ class AuthenticationAPITests(APITestCase):
             status.HTTP_200_OK,
         )
 
-        self.assertTrue(
-            response.data["authenticated"]
-        )
+        self.assertTrue(response.data["authenticated"])
 
         self.assertEqual(
             response.data["username"],
