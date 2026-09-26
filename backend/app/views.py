@@ -72,8 +72,9 @@ def callback(request):
         user.email = email 
         user.first_name = name 
         user.save(update_fields=["email", "first_name"]) 
-        identity.email = email 
-        identity.save(update_fields=["email"]) 
+        identity.email = email
+        identity.display_name = name
+        identity.save(update_fields=["email", "display_name"])
     else:
         with transaction.atomic():
             user = User.objects.create(
@@ -86,6 +87,7 @@ def callback(request):
                 user=user,
                 oid=oid,
                 email=email,
+                display_name=name,
             )
     
     django_login(request, user)
@@ -174,11 +176,14 @@ def me(request):
             },
             status=status.HTTP_200_OK,
         )
+    identity = EntraIdentity.objects.filter(user=request.user).first()
 
     return Response(
     {
         "authenticated": True,
         "username": request.user.username,
+        "display_name": identity.display_name if identity else "",
+        "auth_provider": "microsoft" if identity else "local",
         "csrf_token": get_token(request),
         "is_admin": request.session.get("is_admin", False),
     }
@@ -209,6 +214,100 @@ def pixels(request):
         }
     )
 
+@api_view(["POST"])
+def bulk_pixels(request):
+    if not request.user.is_authenticated:
+        return Response(
+            {"error": "You must be logged in to change pixels."},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    if not EntraIdentity.objects.filter(user=request.user).exists():
+        return Response(
+            {"error": "Microsoft authentication is required."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    pixels = request.data.get("pixels")
+
+    if not isinstance(pixels, list) or not pixels:
+        return Response(
+            {"error": "pixels must be a non-empty list."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    validated_pixels = []
+
+    for item in pixels:
+        if not isinstance(item, dict):
+            return Response(
+                {"error": "Each pixel must be an object."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            x = int(item["x"])
+            y = int(item["y"])
+            color = item["color"]
+        except (KeyError, TypeError, ValueError):
+            return Response(
+                {"error": "Each pixel must contain x, y and color."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not (0 <= x < BOARD_WIDTH and 0 <= y < BOARD_HEIGHT):
+            return Response(
+                {"error": "Pixel coordinates are outside the board."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        validated_pixels.append({
+            "x": x,
+            "y": y,
+            "color": color,
+        })
+
+    username = request.user.username
+    now = timezone.now()
+
+    with transaction.atomic():
+        updated_pixels = []
+
+        for item in validated_pixels:
+            try:
+                pixel = Pixel.objects.select_for_update().get(
+                    x=item["x"],
+                    y=item["y"],
+                )
+            except Pixel.DoesNotExist:
+                return Response(
+                    {
+                        "error": (
+                            f"Pixel ({item['x']}, {item['y']}) "
+                            "does not exist."
+                        )
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            PixelHistory.objects.create(
+                x=pixel.x,
+                y=pixel.y,
+                color=item["color"],
+                user=username,
+                changed_at=now,
+            )
+
+            pixel.color = item["color"]
+            pixel.user = username
+            pixel.changed_at = now
+            pixel.save()
+
+            updated_pixels.append(pixel)
+
+    return Response(
+        PixelSerializer(updated_pixels, many=True).data
+    )
 
 @api_view(["GET", "PUT"])
 def pixel(request):
@@ -236,7 +335,19 @@ def pixel(request):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response(PixelSerializer(pixel).data)
+        data = PixelSerializer(pixel).data
+        
+        identity = EntraIdentity.objects.filter(
+            user__username=pixel.user
+        ).first()
+
+        data["display_name"] = (
+            identity.display_name
+            if identity
+            else pixel.user
+        )
+
+        return Response(data)
 
     if request.method == "PUT":
         if not request.user.is_authenticated:
@@ -283,4 +394,16 @@ def pixel(request):
             pixel.changed_at = now
             pixel.save()
 
-        return Response(PixelSerializer(pixel).data)
+        data = PixelSerializer(pixel).data
+
+        identity = EntraIdentity.objects.filter(
+            user__username=pixel.user
+        ).first()
+
+        data["display_name"] = (
+            identity.display_name
+            if identity
+            else pixel.user
+        )
+
+        return Response(data)

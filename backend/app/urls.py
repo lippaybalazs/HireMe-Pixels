@@ -6,6 +6,7 @@ urlpatterns = [
     path("health/", views.health),
     path("pixels/", views.pixels),
     path("pixel/", views.pixel),
+    path("bulk_pixels/", views.bulk_pixels),
 
     path("auth/register/", views.register),
     path("auth/login/", views.local_login),

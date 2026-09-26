@@ -1,7 +1,10 @@
 const API_URL = window.API_URL;
 
 let currentUser = null;
-let csrfToken  = null;
+let authProvider = null;
+let csrfToken = null;
+let isAdmin = false;
+
 let boardWidth = 0;
 let boardHeight = 0;
 let board = [];
@@ -9,27 +12,56 @@ let board = [];
 let selectedPixel = null;
 let originalColor = null;
 
-let isAdmin = false;
+let currentMode = "select";
+
+let pencilColor = localStorage.getItem("pencilColor") || "#ff0000";
+let isPainting = false;
+let paintingPixels = new Map();
+
 
 const boardElement = document.getElementById("board");
+
 const dialogElement = document.getElementById("pixel-dialog");
+const pixelDialogToggle = document.getElementById("pixel-dialog-toggle");
 
 const positionElement = document.getElementById("pixel-position");
 const userElement = document.getElementById("pixel-user");
-const timeElement = document.getElementById("pixel-time");
 
 const colorPicker = document.getElementById("color-picker");
-const saveButton = document.getElementById("save-button");
+
+const selectModeButton = document.getElementById("selectButton");
+
+const editModeButton = document.getElementById("editButton");
+
+const pencilModeButton = document.getElementById("pencilButton");
+
+const loginToolbarButton = document.getElementById("login-toolbar-button");
+
+const logoutToolbarButton = document.getElementById("logout-toolbar-button");
 
 const loginDialogElement = document.getElementById("login-dialog");
+
 const loginUsername = document.getElementById("login-username");
+
 const loginPassword = document.getElementById("login-password");
+
 const loginButton = document.getElementById("login-button");
+
 const registerButton = document.getElementById("register-button");
+
 const microsoftLoginButton = document.getElementById("microsoft-login-button");
 
-const logoutButton = document.getElementById("logout-button");
 const loadingOverlay = document.getElementById("loading-overlay");
+
+const pixelInfo = document.getElementById("pixel-info");
+
+const pencilColorButton = document.getElementById("pencil-color-button");
+
+const pencilColorPicker = document.getElementById("pencil-color-picker");
+
+/*
+ * Authentication UI
+ */
 
 function showLoading() {
     loadingOverlay.classList.remove("hidden");
@@ -37,14 +69,6 @@ function showLoading() {
 
 function hideLoading() {
     loadingOverlay.classList.add("hidden");
-}
-
-function updateAuthUI() {
-    if (currentUser) {
-        logoutButton.classList.remove("hidden");
-    } else {
-        logoutButton.classList.add("hidden");
-    }
 }
 
 function showLoginDialog() {
@@ -55,6 +79,47 @@ function showLoginDialog() {
 function hideLoginDialog() {
     loginDialogElement.classList.add("hidden");
 }
+
+function updateAuthUI() {
+    if (currentUser) {
+        loginToolbarButton.classList.add("hidden");
+        logoutToolbarButton.classList.remove("hidden");
+
+        editModeButton.disabled = false;
+        editModeButton.title = "Edit";
+
+        if (authProvider === "microsoft") {
+            pencilModeButton.disabled = false;
+            pencilModeButton.title = "Pencil";
+        } else {
+            pencilModeButton.disabled = true;
+            pencilModeButton.title =
+                "Pencil (log in with Microsoft to access)";
+        }
+    } else {
+        loginToolbarButton.classList.remove("hidden");
+        logoutToolbarButton.classList.add("hidden");
+
+        editModeButton.disabled = true;
+        editModeButton.title = "Edit (log in to access)";
+
+        pencilModeButton.disabled = true;
+        pencilModeButton.title =
+            "Pencil (log in with Microsoft to access)";
+
+        /*
+         * A logged-out user cannot remain in edit mode.
+         */
+        if (currentMode != "select") {
+            setMode("select");
+        }
+    }
+}
+
+
+/*
+ * Authentication state
+ */
 
 async function loadCurrentUser() {
     const response = await fetch(`${API_URL}/auth/me/`, {
@@ -69,9 +134,21 @@ async function loadCurrentUser() {
 
     const data = await response.json();
 
-    currentUser = data.authenticated ? data.username : null;
-    csrfToken = data.authenticated ? data.csrf_token : null;
-    isAdmin = data.authenticated ? data.is_admin : false;
+    currentUser = data.authenticated
+        ? data.username
+        : null;
+
+    csrfToken = data.authenticated
+        ? data.csrf_token
+        : null;
+
+    isAdmin = data.authenticated
+        ? data.is_admin
+        : false;
+
+    authProvider = data.authenticated
+    ? data.auth_provider
+    : null;
 
     if (isAdmin) {
         console.log("User is a HireMe-Pixels admin.");
@@ -81,11 +158,17 @@ async function loadCurrentUser() {
 }
 
 
+/*
+ * Board
+ */
+
 async function loadBoard() {
     const response = await fetch(`${API_URL}/pixels/`);
 
     if (!response.ok) {
-        throw new Error(`Failed to load board: ${response.status}`);
+        throw new Error(
+            `Failed to load board: ${response.status}`
+        );
     }
 
     const data = await response.json();
@@ -97,6 +180,126 @@ async function loadBoard() {
     renderBoard();
 }
 
+function startPainting(x, y) {
+    if (authProvider !== "microsoft") {
+        return;
+    }
+
+    isPainting = true;
+    paintingPixels.clear();
+
+    paintPixel(x, y);
+}
+
+
+function paintPixel(x, y) {
+    const key = `${x},${y}`;
+
+    // Record the original color only once per stroke.
+    if (!paintingPixels.has(key)) {
+        paintingPixels.set(key, {
+            x,
+            y,
+            originalColor: board[y][x],
+        });
+    }
+
+    // Update the local board immediately.
+    board[y][x] = pencilColor;
+
+    const pixel = getPixelElement(x, y);
+
+    if (pixel) {
+        pixel.style.backgroundColor = pencilColor;
+    }
+}
+
+
+async function finishPainting() {
+    if (!isPainting) {
+        return;
+    }
+
+    isPainting = false;
+
+    const stroke = [...paintingPixels.values()];
+    paintingPixels.clear();
+
+    if (stroke.length === 0) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_URL}/bulk_pixels/`,
+            {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken,
+                },
+                body: JSON.stringify({
+                    pixels: stroke.map(pixel => ({
+                        x: pixel.x,
+                        y: pixel.y,
+                        color: pencilColor,
+                    })),
+                }),
+            }
+        );
+
+        if (response.status === 401) {
+            throw new Error("Your session has expired. Please log in again.");
+        }
+
+        if (response.status === 403) {
+            throw new Error("Microsoft authentication is required.");
+        }
+
+        if (!response.ok) {
+            const data = await response.json();
+
+            throw new Error(
+                data.error || "Failed to save painted pixels."
+            );
+        }
+
+        const updatedPixels = await response.json();
+
+        // Reconcile the local board with the server response.
+        for (const pixel of updatedPixels) {
+            board[pixel.y][pixel.x] = pixel.color;
+
+            const element = getPixelElement(pixel.x, pixel.y);
+
+            if (element) {
+                element.style.backgroundColor = pixel.color;
+            }
+        }
+
+    } catch (error) {
+        console.error(error);
+
+        // Restore the original colors if the stroke failed.
+        for (const pixel of stroke) {
+            board[pixel.y][pixel.x] = pixel.originalColor;
+
+            const element = getPixelElement(pixel.x, pixel.y);
+
+            if (element) {
+                element.style.backgroundColor = pixel.originalColor;
+            }
+        }
+
+        alert(error.message);
+    }
+}
+
+
+document.addEventListener("mouseup", () => {
+    finishPainting();
+});
 
 function renderBoard() {
     boardElement.innerHTML = "";
@@ -118,7 +321,30 @@ function renderBoard() {
             pixel.dataset.y = y;
 
             pixel.addEventListener("click", () => {
-                selectPixel(x, y);
+                handlePixelClick(x, y);
+            });
+
+            pixel.addEventListener("mousedown", (event) => {
+                if (event.button !== 0 || currentMode !== "pencil") {
+                    return;
+                }
+
+                event.preventDefault();
+
+                startPainting(x, y);
+            });
+
+            pixel.addEventListener("mouseenter", () => {
+                if (isPainting && currentMode === "pencil") {
+                    paintPixel(x, y);
+                }
+                if (currentMode === "pencil") {
+                    pixel.classList.add("pencil-hover");
+                }
+            });
+
+            pixel.addEventListener("mouseleave", () => {
+                pixel.classList.remove("pencil-hover");
             });
 
             boardElement.appendChild(pixel);
@@ -126,15 +352,191 @@ function renderBoard() {
     }
 }
 
-async function saveSelectedPixel() {
-    if (!selectedPixel || originalColor === null) {
+
+/*
+ * Modes
+ */
+function setMode(mode) {
+    /*
+     * Edit is unavailable while logged out.
+     */
+    if (mode === "edit" && !currentUser) {
+        return;
+    }
+
+    if (mode === "pencil" && authProvider !== "microsoft") {
+        return;
+    }
+
+    currentMode = mode;
+    localStorage.setItem("selectedMode", mode);
+
+    const cursor = {
+        select: "default",
+        edit: "pointer",
+        pencil: "crosshair",
+    }[mode];
+
+    boardElement.style.setProperty(
+        "--pixel-cursor",
+        cursor
+    );
+
+    selectModeButton.classList.toggle(
+        "active",
+        mode === "select"
+    );
+
+    editModeButton.classList.toggle(
+        "active",
+        mode === "edit"
+    );
+
+    pencilModeButton.classList.toggle(
+        "active",
+        mode === "pencil"
+    );
+
+    pencilColorButton.classList.toggle(
+        "hidden",
+        mode !== "pencil"
+    );
+
+    pixelInfo.classList.toggle(
+        "hidden",
+        mode !== "select"
+    );
+}
+
+
+selectModeButton.addEventListener("click", () => {
+    setMode("select");
+});
+
+
+editModeButton.addEventListener("click", () => {
+    setMode("edit");
+});
+
+
+pencilModeButton.addEventListener("click", () => {
+    setMode("pencil");
+});
+
+
+/*
+ * Pixel interaction
+ */
+
+async function handlePixelClick(x, y) {
+    if (currentMode === "select") {
+        await selectPixel(x, y);
+        return;
+    }
+
+    if (currentMode === "edit") {
+        await editPixel(x, y);
+        return;
+    }
+}
+
+
+async function selectPixel(x, y) {
+    if (
+        selectedPixel &&
+        selectedPixel.x === x &&
+        selectedPixel.y === y
+    ) {
+        return;
+    }
+
+    selectedPixel = { x, y };
+    originalColor = null;
+
+    updateSelectedPixelBorder();
+
+    try {
+        const response = await fetch(
+            `${API_URL}/pixel/?x=${x}&y=${y}`,
+            {
+                credentials: "include",
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to load pixel: ${response.status}`
+            );
+        }
+
+        const pixel = await response.json();
+
+        showPixelData(pixel);
+
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+
+async function editPixel(x, y) {
+    /*
+     * The button is disabled when logged out, but keep this
+     * check here as an additional safeguard.
+     */
+    if (!currentUser) {
+        showLoginDialog();
+        return;
+    }
+
+    selectedPixel = { x, y };
+    originalColor = board[y][x];
+
+    updateSelectedPixelBorder();
+
+    colorPicker.value = board[y][x];
+
+    /*
+     * Because this happens directly from the pixel click event,
+     * the browser can open the native color picker.
+     */
+    colorPicker.click();
+}
+
+pencilColorButton.addEventListener("click", () => {
+    pencilColorPicker.click();
+});
+
+pencilColorPicker.addEventListener("input", () => {
+    pencilColor = pencilColorPicker.value;
+
+    localStorage.setItem("pencilColor", pencilColor);
+
+    pencilColorButton.style.backgroundColor = pencilColor;
+});
+/*
+ * Save the selected pixel immediately after choosing a color.
+ */
+
+colorPicker.addEventListener("change", async () => {
+    if (
+        currentMode !== "edit" ||
+        !selectedPixel ||
+        !currentUser
+    ) {
         return;
     }
 
     const color = colorPicker.value;
 
-    saveButton.disabled = true;
+    await savePixel(
+        selectedPixel.x,
+        selectedPixel.y,
+        color
+    );
+});
 
+async function savePixel(x, y, color) {
     try {
         const response = await fetch(`${API_URL}/pixel/`, {
             method: "PUT",
@@ -144,14 +546,13 @@ async function saveSelectedPixel() {
                 "X-CSRFToken": csrfToken,
             },
             body: JSON.stringify({
-                x: selectedPixel.x,
-                y: selectedPixel.y,
-                color: color,
+                x,
+                y,
+                color,
             }),
         });
 
         if (response.status === 401) {
-            saveButton.disabled = false;
             showLoginDialog();
             return;
         }
@@ -168,76 +569,71 @@ async function saveSelectedPixel() {
 
         board[pixel.y][pixel.x] = pixel.color;
 
-        showPixelDialog(pixel);
+        originalColor = pixel.color;
+
+        const boardPixel = getPixelElement(
+            pixel.x,
+            pixel.y
+        );
+
+        if (boardPixel) {
+            boardPixel.style.backgroundColor = pixel.color;
+        }
+
+        /*
+         * Keep the information area updated after editing.
+         */
+        showPixelData(pixel);
 
     } catch (error) {
         console.error(error);
 
         alert(error.message);
 
-        const pixel = getPixelElement(
-            selectedPixel.x,
-            selectedPixel.y
-        );
+        const boardPixel = getPixelElement(x, y);
 
-        if (pixel) {
-            pixel.style.backgroundColor = originalColor;
+        if (boardPixel) {
+            boardPixel.style.backgroundColor = originalColor;
         }
 
         colorPicker.value = originalColor;
     }
 }
 
-async function selectPixel(x, y) {
-    if (selectedPixel && selectedPixel.x === x && selectedPixel.y === y) {
-        return;
-    }
 
-    /*
-     * Throw away any unsaved color change on the previously
-     * selected pixel.
-     */
-    if (selectedPixel && originalColor !== null) {
-        const previousPixel = getPixelElement(
-            selectedPixel.x,
-            selectedPixel.y
-        );
+/*
+ * Pixel information
+ */
 
-        if (previousPixel) {
-            previousPixel.style.backgroundColor = originalColor;
-        }
-    }
+function showPixelData(pixel) {
+    positionElement.textContent =
+        `(${pixel.x} x ${pixel.y})`;
 
-    selectedPixel = { x, y };
-    originalColor = null;
-
-    updateSelectedPixelBorder();
-
-    try {
-        const response = await fetch(`${API_URL}/pixel/?x=${x}&y=${y}`,
-            {
-                credentials: "include",
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(
-                `Failed to load pixel: ${response.status}`
-            );
-        }
-
-        const pixel = await response.json();
-
-        showPixelDialog(pixel);
-    } catch (error) {
-        console.error(error);
-    }
+    userElement.textContent =
+        pixel.display_name || pixel.user;
 }
 
+
+
+/*
+ * Pixel selection border
+ */
+
 function isDarkColor(hexColor) {
-    const r = parseInt(hexColor.slice(1, 3), 16);
-    const g = parseInt(hexColor.slice(3, 5), 16);
-    const b = parseInt(hexColor.slice(5, 7), 16);
+    const r = parseInt(
+        hexColor.slice(1, 3),
+        16
+    );
+
+    const g = parseInt(
+        hexColor.slice(3, 5),
+        16
+    );
+
+    const b = parseInt(
+        hexColor.slice(5, 7),
+        16
+    );
 
     const luminance =
         0.299 * r +
@@ -246,6 +642,7 @@ function isDarkColor(hexColor) {
 
     return luminance < 128;
 }
+
 
 function updateSelectedPixelBorder() {
     document
@@ -270,11 +667,14 @@ function updateSelectedPixelBorder() {
 
     pixel.classList.add("selected");
 
-    const color = board[selectedPixel.y][selectedPixel.x];
+    const color =
+        board[selectedPixel.y][selectedPixel.x];
 
     pixel.style.setProperty(
         "--selection-color",
-        isDarkColor(color) ? "#DDDDDD" : "#000000"
+        isDarkColor(color)
+            ? "#DDDDDD"
+            : "#000000"
     );
 }
 
@@ -286,71 +686,57 @@ function getPixelElement(x, y) {
 }
 
 
-function showPixelDialog(pixel) {
-    positionElement.textContent =
-        `(${pixel.x}, ${pixel.y})`;
+/*
+ * Toolbar collapse / expand
+ */
 
-    userElement.textContent =
-        pixel.user;
+pixelDialogToggle.addEventListener("click", () => {
+    const collapsed =
+        dialogElement.classList.toggle("collapsed");
 
-    timeElement.textContent =
-        formatDate(pixel.changed_at);
-
-    colorPicker.value = pixel.color;
-
-    originalColor = pixel.color;
-
-    saveButton.disabled = true;
-
-    dialogElement.classList.remove("hidden");
-}
-
-
-function formatDate(timestamp) {
-    return new Date(timestamp).toLocaleString();
-}
-
-
-colorPicker.addEventListener("input", () => {
-    if (!selectedPixel || originalColor === null) {
-        return;
+    if (collapsed) {
+        pixelDialogToggle.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+        pixelDialogToggle.setAttribute(
+            "aria-label",
+            "Show toolbar"
+        );
+    } else {
+        pixelDialogToggle.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
+        pixelDialogToggle.setAttribute(
+            "aria-label",
+            "Hide toolbar"
+        );
     }
-
-    const newColor = colorPicker.value;
-
-    const pixel = getPixelElement(
-        selectedPixel.x,
-        selectedPixel.y
-    );
-
-    if (pixel) {
-        pixel.style.backgroundColor = newColor;
-    }
-
-    saveButton.disabled = (
-        newColor.toUpperCase() === originalColor.toUpperCase()
-    );
 });
 
-saveButton.addEventListener("click", async () => {
-    await saveSelectedPixel();
+
+/*
+ * Login
+ */
+
+loginToolbarButton.addEventListener("click", () => {
+    showLoginDialog();
 });
+
 
 loginButton.addEventListener("click", async () => {
     showLoading();
 
     try {
-        const response = await fetch(`${API_URL}/auth/login/`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                username: loginUsername.value,
-                password: loginPassword.value,
-            }),
-        });
+        const response = await fetch(
+            `${API_URL}/auth/login/`,
+            {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: loginUsername.value,
+                    password: loginPassword.value,
+                }),
+            }
+        );
 
         const data = await response.json();
 
@@ -368,24 +754,31 @@ loginButton.addEventListener("click", async () => {
     } finally {
         hideLoading();
     }
-
 });
+
+
+/*
+ * Register
+ */
 
 registerButton.addEventListener("click", async () => {
     showLoading();
 
     try {
-        const response = await fetch(`${API_URL}/auth/register/`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                username: loginUsername.value,
-                password: loginPassword.value,
-            }),
-        });
+        const response = await fetch(
+            `${API_URL}/auth/register/`,
+            {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: loginUsername.value,
+                    password: loginPassword.value,
+                }),
+            }
+        );
 
         const data = await response.json();
 
@@ -403,33 +796,52 @@ registerButton.addEventListener("click", async () => {
     } finally {
         hideLoading();
     }
-
 });
+
+
+/*
+ * Microsoft login
+ */
 
 microsoftLoginButton.addEventListener("click", () => {
     showLoading();
-    window.location.href = `${API_URL}/auth/microsoft/`;
+
+    window.location.href =
+        `${API_URL}/auth/microsoft/`;
 });
 
-logoutButton.addEventListener("click", async () => {
+
+/*
+ * Logout
+ */
+
+logoutToolbarButton.addEventListener("click", async () => {
     showLoading();
 
     try {
-        const response = await fetch(`${API_URL}/auth/logout/`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "X-CSRFToken": csrfToken,
-            },
-        });
+        const response = await fetch(
+            `${API_URL}/auth/logout/`,
+            {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "X-CSRFToken": csrfToken,
+                },
+            }
+        );
 
         if (!response.ok) {
             const data = await response.json();
-            throw new Error(data.error || "Logout failed.");
+
+            throw new Error(
+                data.error || "Logout failed."
+            );
         }
 
         currentUser = null;
+        authProvider = null;
         csrfToken = null;
+        isAdmin = false;
 
         updateAuthUI();
 
@@ -437,19 +849,44 @@ logoutButton.addEventListener("click", async () => {
 
     } catch (error) {
         console.error(error);
-        alert(error.message || "Logout failed.");
+
+        alert(
+            error.message || "Logout failed."
+        );
 
     } finally {
         hideLoading();
     }
-
 });
 
 
+/*
+ * Initialize
+ */
+
 async function initialize() {
-    await loadCurrentUser();
-    await loadBoard();
+    showLoading();
+
+    try {
+        pencilColorPicker.value = pencilColor;
+        pencilColorButton.style.backgroundColor = pencilColor;
+
+        await loadCurrentUser();
+        await loadBoard();
+
+        const savedMode = localStorage.getItem("selectedMode") || "select";
+        setMode(savedMode);
+
+    } catch (error) {
+        console.error(error);
+
+        boardElement.textContent =
+            "Failed to load the pixel board.";
+    } finally {
+        hideLoading();
+    }
 }
+
 
 initialize().catch(error => {
     console.error(error);

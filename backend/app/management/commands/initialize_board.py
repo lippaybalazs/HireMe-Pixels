@@ -17,7 +17,7 @@ class Command(BaseCommand):
                 x=x,
                 y=y,
                 color=DEFAULT_PIXEL_COLOR,
-                user="system",
+                user="",
                 changed_at=now,
             )
             for y in range(BOARD_HEIGHT)
