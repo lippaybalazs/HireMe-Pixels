@@ -103,6 +103,7 @@ docker-run:
 		--name $(BACKEND_CONTAINER) \
 		-p 8000:8000 \
 		--add-host=host.docker.internal:host-gateway \
+		-e DJANGO_DEBUG=true \
 		-e DB_HOST=host.docker.internal \
 		-e DB_NAME=$(DB_NAME) \
 		-e DB_USER=$(DB_USER) \

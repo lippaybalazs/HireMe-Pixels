@@ -13,6 +13,12 @@ resource "azurerm_container_app_environment" "main" {
   resource_group_name        = azurerm_resource_group.main.name
   logs_destination           = "log-analytics"
   log_analytics_workspace_id = azurerm_log_analytics_workspace.container_apps.id
+
+  lifecycle {
+    ignore_changes = [
+      workload_profile,
+    ]
+  }
 }
 
 resource "azurerm_container_app" "backend" {
@@ -48,6 +54,11 @@ resource "azurerm_container_app" "backend" {
   secret {
     name  = "db-password"
     value = var.postgres_admin_password
+  }
+
+  secret {
+    name  = "entra-client-secret"
+    value = azuread_application_password.main.value
   }
 
   template {
@@ -95,6 +106,41 @@ resource "azurerm_container_app" "backend" {
       env {
         name  = "DEPLOYMENT_ID"
         value = var.deployment_id
+      }
+
+      env {
+        name  = "ENTRA_CLIENT_ID"
+        value = azuread_application.main.client_id
+      }
+
+      env {
+        name        = "ENTRA_CLIENT_SECRET"
+        secret_name = "entra-client-secret"
+      }
+
+      env {
+        name  = "ENTRA_TENANT_ID"
+        value = data.azuread_client_config.current.tenant_id
+      }
+
+      env {
+        name  = "BACKEND_HOSTNAME"
+        value = var.backend_hostname
+      }
+
+      env {
+        name  = "FRONTEND_URL"
+        value = "https://${var.frontend_hostname}"
+      }
+
+      env {
+        name  = "ENTRA_ADMIN_GROUP_ID"
+        value = var.ENTRA_ADMIN_GROUP_ID
+      }
+
+      env {
+        name  = "DJANGO_SECRET_KEY"
+        value = var.DJANGO_SECRET_KEY
       }
     }
 

@@ -5,3 +5,4 @@ djangorestframework==3.18.0
 psycopg==3.3.4
 psycopg-binary==3.3.4
 sqlparse==0.6.0
+msal==1.39.0

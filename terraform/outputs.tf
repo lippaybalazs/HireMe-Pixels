@@ -17,3 +17,13 @@ output "postgres_database" {
   description = "PostgreSQL database name."
   value       = azurerm_postgresql_flexible_server_database.main.name
 }
+
+output "entra_client_id" {
+  value     = azuread_application.main.client_id
+  sensitive = true
+}
+
+output "entra_client_secret" {
+  value     = azuread_application_password.main.value
+  sensitive = true
+}

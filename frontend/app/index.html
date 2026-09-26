@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HireMe Pixels</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
 </head>
 <body>
     <main>
@@ -15,34 +16,115 @@
         </div>
     </main>
 
-    <div id="pixel-dialog" class="hidden">
-        <div class="pixel-info">
-            <div>
-                <span class="label">Position</span>
-                <span id="pixel-position"></span>
+    <div id="pixel-dialog">
+        <button
+            id="pixel-dialog-toggle"
+            type="button"
+            aria-label="Hide toolbar"
+        >
+            <i class="fa-solid fa-arrow-down"></i>
+        </button>
+
+        <div id="pixel-dialog-content">
+
+            <div id="toolbar-buttons">
+                <button id="selectButton" title="Select">
+                    <i class="fa-solid fa-hand-pointer"></i>
+                </button>
+
+                <button id="editButton" title="Edit">
+                    <i class="fa-solid fa-pencil"></i>
+                </button>
+                <button id="pencilButton" title="Pencil" disabled>
+                    <i class="fa-solid fa-signature"></i>
+                </button>
+                <button id="ban-user-button" class="hidden" title="Ban user">
+                    <i class="fa-solid fa-user-slash"></i>
+                </button>
+                <button
+                    id="pencil-color-button"
+                    class="hidden"
+                    type="button"
+                    title="Choose pencil color"
+                    aria-label="Choose pencil color"
+                >
+                </button>
+
+                <input
+                    id="pencil-color-picker"
+                    type="color"
+                    value="#ff0000"
+                    class="hidden"
+                    aria-label="Pencil color"
+                />
             </div>
 
-            <div>
-                <span class="label">Last edited by</span>
-                <span id="pixel-user"></span>
+            <div id="pixel-info">
+                <div>
+                    <span id="pixel-position-label">Position: <span id="pixel-position"></span></span>
+                    <span id="pixel-user-label">By: <span id="pixel-user"></span></span>
+                </div>
             </div>
 
-            <div>
-                <span class="label">Last changed</span>
-                <span id="pixel-time"></span>
-            </div>
-        </div>
+            <div id="toolbar-auth">
+                <button id="login-toolbar-button" title="Login" type="button">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                </button>
 
-        <div class="pixel-editor">
+                <button id="logout-toolbar-button" title="Logout" type="button" class="hidden">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+
             <input
-                type="color"
                 id="color-picker"
+                type="color"
                 value="#FFFFFF"
             >
 
-            <button id="save-button" disabled>Save</button>
         </div>
     </div>
+
+    <div id="login-dialog" class="hidden">
+        <div class="login-modal">
+            <h2>Login</h2>
+
+            <input
+                id="login-username"
+                type="text"
+                placeholder="Username"
+                autocomplete="username"
+            >
+
+            <input
+                id="login-password"
+                type="password"
+                placeholder="Password"
+                autocomplete="current-password"
+            >
+
+            <button id="login-button" type="button">
+                Login
+            </button>
+
+            <button id="register-button" type="button">
+                Register
+            </button>
+
+            <div class="login-divider">
+                <span>or</span>
+            </div>
+
+            <button id="microsoft-login-button" type="button">
+                Login with Microsoft
+            </button>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="hidden">
+        <div class="loading-spinner"></div>
+    </div>
+
 
     <script src="config.js"></script>
     <script src="app.js"></script>
