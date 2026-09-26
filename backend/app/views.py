@@ -1,21 +1,21 @@
 import msal
 from django.conf import settings
-from django.db import transaction
-from django.http import JsonResponse
-from django.shortcuts import redirect
-from django.utils import timezone
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as django_login
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.models import User
+from django.db import transaction
+from django.http import JsonResponse
 from django.middleware.csrf import get_token
+from django.shortcuts import redirect
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .constants import BOARD_HEIGHT, BOARD_WIDTH, DEFAULT_PIXEL_COLOR
-from .models import Pixel, PixelHistory, EntraIdentity
-from .serializers import PixelUpdateSerializer, PixelSerializer
+from .models import EntraIdentity, Pixel, PixelHistory
+from .serializers import PixelSerializer, PixelUpdateSerializer
 
 
 def get_msal_app():
@@ -35,6 +35,7 @@ def microsoft_login(request):
     request.session["auth_flow"] = flow
 
     return redirect(flow["auth_uri"])
+
 
 def callback(request):
     flow = request.session.get("auth_flow")
@@ -61,17 +62,17 @@ def callback(request):
 
     claims = result["id_token_claims"]
 
-    oid = claims["oid"] 
-    email = claims.get("preferred_username", "") 
-    name = claims.get("name", "") 
+    oid = claims["oid"]
+    email = claims.get("preferred_username", "")
+    name = claims.get("name", "")
     groups = claims.get("groups", [])
-    identity = EntraIdentity.objects.select_related("user").filter(oid=oid).first() 
+    identity = EntraIdentity.objects.select_related("user").filter(oid=oid).first()
 
-    if identity: 
-        user = identity.user 
-        user.email = email 
-        user.first_name = name 
-        user.save(update_fields=["email", "first_name"]) 
+    if identity:
+        user = identity.user
+        user.email = email
+        user.first_name = name
+        user.save(update_fields=["email", "first_name"])
         identity.email = email
         identity.display_name = name
         identity.save(update_fields=["email", "display_name"])
@@ -95,16 +96,15 @@ def callback(request):
             {"error": "This user has been banned."},
             status=403,
         )
-    
+
     django_login(request, user)
 
-    request.session["is_admin"] = (
-        settings.ENTRA_ADMIN_GROUP_ID in groups
-    )
+    request.session["is_admin"] = settings.ENTRA_ADMIN_GROUP_ID in groups
 
     request.session.pop("auth_flow", None)
 
     return redirect(settings.FRONTEND_URL)
+
 
 @api_view(["POST"])
 def register(request):
@@ -203,22 +203,20 @@ def me(request):
     identity = EntraIdentity.objects.filter(user=request.user).first()
 
     return Response(
-    {
-        "authenticated": True,
-        "username": request.user.username,
-        "display_name": identity.display_name if identity else "",
-        "auth_provider": "microsoft" if identity else "local",
-        "csrf_token": get_token(request),
-        "is_admin": request.session.get("is_admin", False),
-    }
-)
-
+        {
+            "authenticated": True,
+            "username": request.user.username,
+            "display_name": identity.display_name if identity else "",
+            "auth_provider": "microsoft" if identity else "local",
+            "csrf_token": get_token(request),
+            "is_admin": request.session.get("is_admin", False),
+        }
+    )
 
 
 @api_view(["GET"])
 def health(request):
     return Response({"status": "ok"})
-
 
 
 @api_view(["GET"])
@@ -237,6 +235,7 @@ def pixels(request):
             "pixels": grid,
         }
     )
+
 
 @api_view(["POST"])
 def bulk_pixels(request):
@@ -285,11 +284,13 @@ def bulk_pixels(request):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        validated_pixels.append({
-            "x": x,
-            "y": y,
-            "color": color,
-        })
+        validated_pixels.append(
+            {
+                "x": x,
+                "y": y,
+                "color": color,
+            }
+        )
 
     username = request.user.username
     now = timezone.now()
@@ -305,12 +306,7 @@ def bulk_pixels(request):
                 )
             except Pixel.DoesNotExist:
                 return Response(
-                    {
-                        "error": (
-                            f"Pixel ({item['x']}, {item['y']}) "
-                            "does not exist."
-                        )
-                    },
+                    {"error": (f"Pixel ({item['x']}, {item['y']}) does not exist.")},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
@@ -329,9 +325,8 @@ def bulk_pixels(request):
 
             updated_pixels.append(pixel)
 
-    return Response(
-        PixelSerializer(updated_pixels, many=True).data
-    )
+    return Response(PixelSerializer(updated_pixels, many=True).data)
+
 
 @api_view(["GET", "PUT"])
 def pixel(request):
@@ -360,18 +355,12 @@ def pixel(request):
             )
 
         data = PixelSerializer(pixel).data
-        
-        identity = EntraIdentity.objects.filter(
-            user__username=pixel.user
-        ).first()
+
+        identity = EntraIdentity.objects.filter(user__username=pixel.user).first()
 
         data["user"] = "" if pixel.user == "system" else pixel.user
 
-        data["display_name"] = (
-            identity.display_name
-            if identity
-            else "" if pixel.user == "system" else pixel.user
-        )
+        data["display_name"] = identity.display_name if identity else "" if pixel.user == "system" else pixel.user
 
         return Response(data)
 
@@ -422,19 +411,14 @@ def pixel(request):
 
         data = PixelSerializer(pixel).data
 
-        identity = EntraIdentity.objects.filter(
-            user__username=pixel.user
-        ).first()
+        identity = EntraIdentity.objects.filter(user__username=pixel.user).first()
 
         data["user"] = "" if pixel.user == "system" else pixel.user
 
-        data["display_name"] = (
-            identity.display_name
-            if identity
-            else "" if pixel.user == "system" else pixel.user
-        )
+        data["display_name"] = identity.display_name if identity else "" if pixel.user == "system" else pixel.user
 
         return Response(data)
+
 
 @api_view(["POST"])
 def ban_user(request):
@@ -473,20 +457,10 @@ def ban_user(request):
         )
 
     with transaction.atomic():
-        user_pixels = list(
-            Pixel.objects.select_for_update().filter(
-                user=username
-            )
-        )
+        user_pixels = list(Pixel.objects.select_for_update().filter(user=username))
 
         for pixel in user_pixels:
-            previous = (
-                PixelHistory.objects
-                .filter(x=pixel.x, y=pixel.y)
-                .exclude(user=username)
-                .order_by("-changed_at")
-                .first()
-            )
+            previous = PixelHistory.objects.filter(x=pixel.x, y=pixel.y).exclude(user=username).order_by("-changed_at").first()
 
             if previous:
                 pixel.color = previous.color

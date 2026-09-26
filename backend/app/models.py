@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User 
+from django.contrib.auth.models import User
 from django.db import models
 
 
@@ -10,6 +10,7 @@ class EntraIdentity(models.Model):
 
     def __str__(self):
         return self.display_name or self.email or self.oid
+
 
 class Pixel(models.Model):
     pk = models.CompositePrimaryKey("x", "y")

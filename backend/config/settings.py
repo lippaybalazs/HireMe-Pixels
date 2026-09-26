@@ -16,14 +16,14 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-ENTRA_CLIENT_ID = os.environ.get("ENTRA_CLIENT_ID","")
-ENTRA_CLIENT_SECRET = os.environ.get("ENTRA_CLIENT_SECRET","")
-ENTRA_TENANT_ID = os.environ.get("ENTRA_TENANT_ID","")
+ENTRA_CLIENT_ID = os.environ.get("ENTRA_CLIENT_ID", "")
+ENTRA_CLIENT_SECRET = os.environ.get("ENTRA_CLIENT_SECRET", "")
+ENTRA_TENANT_ID = os.environ.get("ENTRA_TENANT_ID", "")
 
-BACKEND_HOSTNAME = os.environ.get("BACKEND_HOSTNAME","")
-FRONTEND_URL = os.environ.get("FRONTEND_URL","")
+BACKEND_HOSTNAME = os.environ.get("BACKEND_HOSTNAME", "")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "")
 
-ENTRA_ADMIN_GROUP_ID = os.environ.get("ENTRA_ADMIN_GROUP_ID","")
+ENTRA_ADMIN_GROUP_ID = os.environ.get("ENTRA_ADMIN_GROUP_ID", "")
 
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
