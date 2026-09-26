@@ -25,6 +25,39 @@ h1 {
     text-align: center;
 }
 
+#pixel-dialog-content {
+    min-height: 60px;
+    padding: 0.5rem 0.75rem;
+
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    position: relative;
+}
+
+#toolbar-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+#pixel-info {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+}
+
+#toolbar-auth {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+
+    display: flex;
+    gap: 0.5rem;
+}
+
 #board-container {
     width: 100%;
     overflow: auto;
@@ -85,15 +118,6 @@ h1 {
     z-index: 1000;
 }
 
-#pixel-dialog-content {
-    min-height: 60px;
-    padding: 0.5rem 0.75rem;
-
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
 #pixel-dialog-toggle {
     position: absolute;
     top: -8px;
@@ -130,12 +154,6 @@ h1 {
 
 /* Toolbar mode buttons */
 
-#toolbar-buttons {
-    display: flex;
-    gap: 0.5rem;
-    flex-shrink: 0;
-}
-
 #toolbar-buttons button,
 #toolbar-auth button {
     width: 30px;
@@ -156,11 +174,7 @@ h1 {
 
 
 /* Pixel information */
-#pixel-info {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-}
+
 
 #pixel-info > div {
     display: flex;
@@ -181,15 +195,6 @@ h1 {
 #pixel-position,
 #pixel-user {
     color: #333;
-}
-
-/* Login/logout */
-
-#toolbar-auth {
-    margin-left: auto;
-    flex-shrink: 0;
-    display: flex;
-    justify-content: flex-end;
 }
 
 

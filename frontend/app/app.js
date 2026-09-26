@@ -18,6 +18,8 @@ let pencilColor = localStorage.getItem("pencilColor") || "#ff0000";
 let isPainting = false;
 let paintingPixels = new Map();
 
+let selected_user = null;
+
 
 const boardElement = document.getElementById("board");
 
@@ -58,6 +60,8 @@ const pixelInfo = document.getElementById("pixel-info");
 const pencilColorButton = document.getElementById("pencil-color-button");
 
 const pencilColorPicker = document.getElementById("pencil-color-picker");
+
+const banUserButton = document.getElementById("ban-user-button");
 
 /*
  * Authentication UI
@@ -150,14 +154,21 @@ async function loadCurrentUser() {
     ? data.auth_provider
     : null;
 
-    if (isAdmin) {
-        console.log("User is a HireMe-Pixels admin.");
-    }
-
     updateAuthUI();
+    updateBanButton();
 }
 
+function updateBanButton() {
+    banUserButton.classList.toggle(
+        "hidden",
+        !isAdmin || currentMode != "select"
+    );
 
+    banUserButton.disabled =
+        !selectedPixel ||
+        !selected_user ||
+        currentUser === selected_user;
+}
 /*
  * Board
  */
@@ -406,6 +417,8 @@ function setMode(mode) {
         "hidden",
         mode !== "select"
     );
+
+    updateBanButton();
 }
 
 
@@ -453,6 +466,7 @@ async function selectPixel(x, y) {
     selectedPixel = { x, y };
     originalColor = null;
 
+
     updateSelectedPixelBorder();
 
     try {
@@ -470,8 +484,9 @@ async function selectPixel(x, y) {
         }
 
         const pixel = await response.json();
-
+        
         showPixelData(pixel);
+        updateBanButton();
 
     } catch (error) {
         console.error(error);
@@ -584,6 +599,7 @@ async function savePixel(x, y, color) {
          * Keep the information area updated after editing.
          */
         showPixelData(pixel);
+        updateBanButton();
 
     } catch (error) {
         console.error(error);
@@ -606,11 +622,20 @@ async function savePixel(x, y, color) {
  */
 
 function showPixelData(pixel) {
-    positionElement.textContent =
+    if (pixel) {
+        positionElement.textContent =
         `(${pixel.x} x ${pixel.y})`;
 
-    userElement.textContent =
-        pixel.display_name || pixel.user;
+        userElement.textContent =
+            pixel.display_name || pixel.user;
+
+        selected_user = pixel.user;
+    } else {
+        positionElement.textContent = "";
+        userElement.textContent = "";
+        selected_user = null;
+    }
+    
 }
 
 
@@ -859,6 +884,62 @@ logoutToolbarButton.addEventListener("click", async () => {
     }
 });
 
+/*
+ * Ban user
+ */
+
+banUserButton.addEventListener("click", async () => {
+    if (
+        !isAdmin ||
+        !selectedPixel ||
+        !selected_user ||
+        currentUser === selected_user
+    ) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_URL}/auth/ban/`,
+            {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken,
+                },
+                body: JSON.stringify({
+                    username: selected_user,
+                }),
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.error || "Failed to ban user."
+            );
+        }
+
+        await loadBoard();
+
+        selected_user = null;
+        selectedPixel = null;
+        updateBanButton();
+        showPixelData(selectedPixel)
+        
+
+        alert(`User "${data.username}" has been banned.`);
+
+    } catch (error) {
+        console.error(error);
+
+        alert(
+            error.message || "Failed to ban user."
+        );
+    }
+});
 
 /*
  * Initialize

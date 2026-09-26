@@ -11,6 +11,7 @@ urlpatterns = [
     path("auth/register/", views.register),
     path("auth/login/", views.local_login),
     path("auth/logout/", views.logout),
+    path("auth/ban/", views.ban_user),
     path("auth/me/", views.me),
 
     path("auth/microsoft/", views.microsoft_login),

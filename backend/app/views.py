@@ -13,7 +13,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .constants import BOARD_HEIGHT, BOARD_WIDTH
+from .constants import BOARD_HEIGHT, BOARD_WIDTH, DEFAULT_PIXEL_COLOR
 from .models import Pixel, PixelHistory, EntraIdentity
 from .serializers import PixelUpdateSerializer, PixelSerializer
 
@@ -89,6 +89,12 @@ def callback(request):
                 email=email,
                 display_name=name,
             )
+
+    if not user.is_active:
+        return JsonResponse(
+            {"error": "This user has been banned."},
+            status=403,
+        )
     
     django_login(request, user)
 
@@ -104,6 +110,24 @@ def callback(request):
 def register(request):
     username = request.data.get("username", "").strip()
     password = request.data.get("password", "")
+
+    if len(username) < 3:
+        return Response(
+            {"error": "Username must be at least 3 characters long."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if len(password) < 3:
+        return Response(
+            {"error": "Password must be at least 3 characters long."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if username.lower() == "system":
+        return Response(
+            {"error": "This username is reserved."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     if not username or not password:
         return Response(
@@ -341,10 +365,12 @@ def pixel(request):
             user__username=pixel.user
         ).first()
 
+        data["user"] = "" if pixel.user == "system" else pixel.user
+
         data["display_name"] = (
             identity.display_name
             if identity
-            else pixel.user
+            else "" if pixel.user == "system" else pixel.user
         )
 
         return Response(data)
@@ -400,10 +426,93 @@ def pixel(request):
             user__username=pixel.user
         ).first()
 
+        data["user"] = "" if pixel.user == "system" else pixel.user
+
         data["display_name"] = (
             identity.display_name
             if identity
-            else pixel.user
+            else "" if pixel.user == "system" else pixel.user
         )
 
         return Response(data)
+
+@api_view(["POST"])
+def ban_user(request):
+    if not request.user.is_authenticated:
+        return Response(
+            {"error": "You must be logged in."},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    if not request.session.get("is_admin", False):
+        return Response(
+            {"error": "You must be an admin."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    username = request.data.get("username", "").strip()
+
+    if not username:
+        return Response(
+            {"error": "Username is required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if username == request.user.username:
+        return Response(
+            {"error": "You cannot ban yourself."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "User not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    with transaction.atomic():
+        user_pixels = list(
+            Pixel.objects.select_for_update().filter(
+                user=username
+            )
+        )
+
+        for pixel in user_pixels:
+            previous = (
+                PixelHistory.objects
+                .filter(x=pixel.x, y=pixel.y)
+                .exclude(user=username)
+                .order_by("-changed_at")
+                .first()
+            )
+
+            if previous:
+                pixel.color = previous.color
+                pixel.user = previous.user
+                pixel.changed_at = previous.changed_at
+            else:
+                pixel.color = DEFAULT_PIXEL_COLOR
+                pixel.user = "system"
+                pixel.changed_at = timezone.now()
+
+            pixel.save(
+                update_fields=[
+                    "color",
+                    "user",
+                    "changed_at",
+                ]
+            )
+
+        PixelHistory.objects.filter(user=username).delete()
+
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+
+    return Response(
+        {
+            "success": True,
+            "username": username,
+        }
+    )
