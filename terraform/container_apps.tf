@@ -109,8 +109,8 @@ resource "azurerm_container_app" "backend" {
       }
 
       env {
-        name        = "ENTRA_CLIENT_ID"
-        value       = azuread_application.main.client_id
+        name  = "ENTRA_CLIENT_ID"
+        value = azuread_application.main.client_id
       }
 
       env {
