@@ -70,3 +70,21 @@ variable "DJANGO_SECRET_KEY" {
 variable "entra_credential_end_date" {
   type = string
 }
+
+variable "backend_min_replicas" {
+  description = "Minimum number of backend Container App replicas."
+  type        = number
+  default     = 1
+}
+
+variable "backend_max_replicas" {
+  description = "Maximum number of backend Container App replicas."
+  type        = number
+  default     = 1
+}
+
+variable "backend_http_concurrency" {
+  description = "Target concurrent HTTP requests per backend replica before scaling."
+  type        = string
+  default     = "20"
+}
