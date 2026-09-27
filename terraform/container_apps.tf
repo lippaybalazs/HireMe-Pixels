@@ -144,8 +144,13 @@ resource "azurerm_container_app" "backend" {
       }
     }
 
-    min_replicas = 1
-    max_replicas = 1
+    min_replicas = var.backend_min_replicas
+    max_replicas = var.backend_max_replicas
+
+    http_scale_rule {
+      name                = "http"
+      concurrent_requests = var.backend_http_concurrency
+    }
   }
 }
 
