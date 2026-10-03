@@ -61,6 +61,12 @@ resource "azurerm_container_app" "backend" {
     value = azuread_application_password.main.value
   }
 
+  secret {
+    name = "redis-url"
+
+    value = "redis://:${random_password.redis[0].result}@hp-${var.environment}-redis:6379/0"
+  }
+
   template {
     container {
       name   = "backend"
@@ -142,6 +148,11 @@ resource "azurerm_container_app" "backend" {
         name  = "DJANGO_SECRET_KEY"
         value = var.DJANGO_SECRET_KEY
       }
+
+      env {
+        name        = "REDIS_URL"
+        secret_name = "redis-url"
+      }
     }
 
     min_replicas = var.backend_min_replicas
@@ -152,6 +163,10 @@ resource "azurerm_container_app" "backend" {
       concurrent_requests = var.backend_http_concurrency
     }
   }
+
+  depends_on = [
+    azurerm_container_app.redis
+  ]
 }
 
 resource "azurerm_container_app" "frontend" {
@@ -205,4 +220,80 @@ resource "azurerm_container_app" "frontend" {
     min_replicas = 1
     max_replicas = 1
   }
+}
+
+resource "azurerm_container_app" "redis" {
+  count = var.deploy_apps ? 1 : 0
+
+  name                         = "hp-${var.environment}-redis"
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  resource_group_name          = azurerm_resource_group.main.name
+  revision_mode                = "Single"
+
+  secret {
+    name  = "redis-password"
+    value = random_password.redis[0].result
+  }
+
+  template {
+    min_replicas = 1
+    max_replicas = 1
+
+    container {
+      name   = "redis"
+      image  = "${azurerm_container_registry.main.login_server}/hireme-pixels-redis:latest"
+      cpu    = 0.25
+      memory = "0.5Gi"
+
+      env {
+        name        = "REDIS_PASSWORD"
+        secret_name = "redis-password"
+      }
+
+      env {
+        name  = "DEPLOYMENT_ID"
+        value = var.deployment_id
+      }
+
+      liveness_probe {
+        transport = "TCP"
+        port      = 6379
+      }
+
+      readiness_probe {
+        transport = "TCP"
+        port      = 6379
+      }
+    }
+  }
+
+  ingress {
+    external_enabled = false
+    target_port      = 6379
+    transport        = "tcp"
+
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
+  }
+
+  registry {
+    server               = azurerm_container_registry.main.login_server
+    username             = azurerm_container_registry.main.admin_username
+    password_secret_name = "acr-password"
+  }
+
+  secret {
+    name  = "acr-password"
+    value = azurerm_container_registry.main.admin_password
+  }
+}
+
+resource "random_password" "redis" {
+  count = var.deploy_apps ? 1 : 0
+
+  length           = 32
+  special          = true
+  override_special = "!$%&*+-=_"
 }

@@ -1,5 +1,8 @@
 const API_URL = window.API_URL;
 
+let boardSocket = null;
+let boardSocketReconnectTimer = null;
+
 let currentUser = null;
 let authProvider = null;
 let csrfToken = null;
@@ -120,6 +123,64 @@ function updateAuthUI() {
     }
 }
 
+function connectBoardWebSocket() {
+    const apiUrl = new URL(API_URL);
+
+    const protocol =
+        apiUrl.protocol === "https:"
+            ? "wss:"
+            : "ws:";
+
+    boardSocket = new WebSocket(
+        `${protocol}//${apiUrl.host}/ws/board/`
+    );
+
+    boardSocket.addEventListener("open", () => {
+        console.log("Board WebSocket connected.");
+    });
+
+    boardSocket.addEventListener("message", (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type !== "board_update") {
+            return;
+        }
+
+        for (const pixel of data.pixels) {
+            board[pixel.y][pixel.x] = pixel.color;
+
+            const element = getPixelElement(
+                pixel.x,
+                pixel.y
+            );
+
+            if (element) {
+                element.style.backgroundColor = pixel.color;
+            }
+        }
+
+        if (selectedPixel) {
+            updateSelectedPixelBorder();
+        }
+    });
+
+    boardSocket.addEventListener("close", () => {
+        console.log("Board WebSocket disconnected.");
+
+        if (boardSocketReconnectTimer) {
+            return;
+        }
+
+        boardSocketReconnectTimer = setTimeout(() => {
+            boardSocketReconnectTimer = null;
+            connectBoardWebSocket();
+        }, 3000);
+    });
+
+    boardSocket.addEventListener("error", (error) => {
+        console.error("Board WebSocket error:", error);
+    });
+}
 
 /*
  * Authentication state
@@ -955,7 +1016,11 @@ async function initialize() {
         await loadCurrentUser();
         await loadBoard();
 
-        const savedMode = localStorage.getItem("selectedMode") || "select";
+        connectBoardWebSocket();
+
+        const savedMode =
+            localStorage.getItem("selectedMode") || "select";
+
         setMode(savedMode);
 
     } catch (error) {

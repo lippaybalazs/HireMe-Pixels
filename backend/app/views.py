@@ -1,3 +1,5 @@
+import logging
+
 import msal
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -13,9 +15,12 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from .broadcasts import broadcast_pixels
 from .constants import BOARD_HEIGHT, BOARD_WIDTH, DEFAULT_PIXEL_COLOR
 from .models import EntraIdentity, Pixel, PixelHistory
 from .serializers import PixelSerializer, PixelUpdateSerializer
+
+logger = logging.getLogger(__name__)
 
 
 def get_msal_app():
@@ -325,6 +330,11 @@ def bulk_pixels(request):
 
             updated_pixels.append(pixel)
 
+    try:
+        broadcast_pixels(updated_pixels)
+    except Exception:
+        logger.exception("Failed to broadcast pixel update.")
+
     return Response(PixelSerializer(updated_pixels, many=True).data)
 
 
@@ -408,6 +418,11 @@ def pixel(request):
             pixel.user = username
             pixel.changed_at = now
             pixel.save()
+
+        try:
+            broadcast_pixels([pixel])
+        except Exception:
+            logger.exception("Failed to broadcast pixel update.")
 
         data = PixelSerializer(pixel).data
 
