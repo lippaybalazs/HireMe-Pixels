@@ -1,3 +1,5 @@
+import logging
+
 import msal
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -13,12 +15,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from .broadcasts import broadcast_pixels
 from .constants import BOARD_HEIGHT, BOARD_WIDTH, DEFAULT_PIXEL_COLOR
 from .models import EntraIdentity, Pixel, PixelHistory
 from .serializers import PixelSerializer, PixelUpdateSerializer
-from .broadcasts import broadcast_pixels
-
-import logging
 
 logger = logging.getLogger(__name__)
 

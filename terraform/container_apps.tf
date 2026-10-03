@@ -163,7 +163,7 @@ resource "azurerm_container_app" "backend" {
       concurrent_requests = var.backend_http_concurrency
     }
   }
-  
+
   depends_on = [
     azurerm_container_app.redis
   ]

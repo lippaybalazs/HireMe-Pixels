@@ -1,15 +1,14 @@
+from unittest.mock import patch
+
+from channels.layers import get_channel_layer
+from channels.testing import WebsocketCommunicator
 from django.contrib.auth.models import User
+from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from channels.layers import get_channel_layer
-from channels.testing import WebsocketCommunicator
-from django.test import TransactionTestCase, override_settings
-
 from config.asgi import application
-
-from unittest.mock import patch
 
 from .constants import BOARD_HEIGHT, BOARD_WIDTH
 from .models import EntraIdentity, Pixel, PixelHistory
@@ -814,6 +813,7 @@ class BulkPixelAPITests(APITestCase):
             response.status_code,
             status.HTTP_400_BAD_REQUEST,
         )
+
 
 @override_settings(
     CHANNEL_LAYERS={
