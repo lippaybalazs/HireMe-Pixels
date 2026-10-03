@@ -75,8 +75,10 @@ push-local:
 	az acr login --name $$(terraform -chdir=terraform output -raw acr_name); \
 	docker build -t $$ACR/hireme-pixels-backend:latest ./backend; \
 	docker build -t $$ACR/hireme-pixels-frontend:latest ./frontend; \
+	docker build -t $$ACR/hireme-pixels-redis:latest ./backend/redis; \
 	docker push $$ACR/hireme-pixels-backend:latest; \
-	docker push $$ACR/hireme-pixels-frontend:latest
+	docker push $$ACR/hireme-pixels-frontend:latest; \
+	docker push $$ACR/hireme-pixels-redis:latest
 
 apply-pre:
 	terraform -chdir=terraform apply \

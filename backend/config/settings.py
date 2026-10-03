@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
+    "channels",
     "app",
 ]
 
@@ -78,7 +79,29 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
 
+if DEBUG:
+    REDIS_URL = os.environ.get(
+        "REDIS_URL",
+        "redis://127.0.0.1:6379/0",
+    )
+else:
+    REDIS_URL = os.environ["REDIS_URL"]
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [
+                {
+                    "address": REDIS_URL,
+                    "socket_keepalive": True,
+                }
+            ],
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases

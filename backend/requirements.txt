@@ -6,3 +6,7 @@ psycopg==3.3.4
 psycopg-binary==3.3.4
 sqlparse==0.6.0
 msal==1.39.0
+channels==4.3.2
+channels-redis==4.3.0
+daphne==4.2.1
+redis==7.2.1
