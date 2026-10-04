@@ -7,6 +7,7 @@ FRONTEND_IMAGE := hireme-pixels-frontend:latest
 K8S_MANIFESTS := \
 	k8s/postgres-secret.yaml \
 	k8s/postgres.yaml \
+	k8s/redis.yaml \
 	k8s/backend.yaml \
 	k8s/frontend.yaml
 
@@ -15,7 +16,7 @@ K8S_MANIFESTS := \
 	stop-local
 
 start: stop stop-local k8s-create k8s-build k8s-load k8s-apply k8s-wait
-	@explorer.exe http://localhost:8080 || true
+	@explorer.exe http://127.0.0.1:8080 || true
 
 stop:
 	$(MAKE) k8s-stop
@@ -57,11 +58,13 @@ k8s-wait:
 	kubectl wait --for=condition=ready pod/postgres-0 --timeout=120s
 	kubectl wait --for=condition=available deployment/backend --timeout=120s
 	kubectl wait --for=condition=available deployment/frontend --timeout=120s
+	kubectl wait --for=condition=available deployment/redis --timeout=120s
 
 k8s-stop:
 	-kubectl delete deployment backend frontend --ignore-not-found
 	-kubectl delete statefulset postgres --ignore-not-found
 	-kubectl delete service backend frontend postgres --ignore-not-found
+	-kubectl delete deployment backend frontend redis --ignore-not-found
 
 k8s-clean:
 	-kind delete cluster --name $(K8S_CLUSTER)

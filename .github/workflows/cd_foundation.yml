@@ -1,0 +1,36 @@
+name: CD Foundation (Manual Recovery)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-foundation:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_WORKSPACE: ${{ github.ref_name == 'main' && 'development' || 'production' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply Foundation
+        run: terraform apply -auto-approve -var="deploy_apps=false"
