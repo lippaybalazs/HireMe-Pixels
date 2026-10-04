@@ -3,8 +3,7 @@ name: CD
 on:
   push:
     branches:
-      # disabled to keep costs lower
-      #- main
+      - main
       - production
 
 permissions:
@@ -36,15 +35,6 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-
-      - name: Terraform Format Check
-        run: terraform fmt -check
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Terraform Apply Foundation
-        run: terraform apply -auto-approve -var="deploy_apps=false"
 
       - name: Get ACR details
         id: acr
