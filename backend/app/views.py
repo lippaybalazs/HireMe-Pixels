@@ -161,16 +161,13 @@ def register(request):
         status=status.HTTP_201_CREATED,
     )
 
+
 @api_view(["POST"])
 def local_login(request):
     username = request.data.get("username", "").strip()
     password = request.data.get("password", "")
 
-    if (
-        settings.DEBUG
-        and username == settings.DEV_ADMIN_USERNAME
-        and password == settings.DEV_ADMIN_PASSWORD
-    ):
+    if settings.DEBUG and username == settings.DEV_ADMIN_USERNAME and password == settings.DEV_ADMIN_PASSWORD:
         with transaction.atomic():
             user, _ = User.objects.get_or_create(
                 username=settings.DEV_ADMIN_USERNAME,
@@ -194,9 +191,7 @@ def local_login(request):
                 identity.oid = settings.DEV_ADMIN_OID
                 identity.email = settings.DEV_ADMIN_EMAIL
                 identity.display_name = settings.DEV_ADMIN_DISPLAY_NAME
-                identity.save(
-                    update_fields=["oid", "email", "display_name"]
-                )
+                identity.save(update_fields=["oid", "email", "display_name"])
 
         django_login(request, user)
         request.session["is_admin"] = True
