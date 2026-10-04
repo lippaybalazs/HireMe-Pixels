@@ -44,6 +44,8 @@ spec:
               value: "localhost,127.0.0.1"
             - name: CORS_ALLOWED_ORIGINS
               value: "http://localhost:8080,http://127.0.0.1:8080"
+            - name: REDIS_URL
+              value: "redis://redis:6379/0"
           readinessProbe:
             httpGet:
               path: /api/health/

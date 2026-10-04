@@ -29,6 +29,12 @@ ENTRA_ADMIN_GROUP_ID = os.environ.get("ENTRA_ADMIN_GROUP_ID", "")
 DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
 if DEBUG:
     SECRET_KEY = "django-insecure-89_!pp2u#!*r=)(y)8k)1^m!d(*6rgo0d%9!7n094cmqn^%6t*"
+    
+    DEV_ADMIN_USERNAME = "admin"
+    DEV_ADMIN_PASSWORD = "admin"
+    DEV_ADMIN_OID = "00000000-0000-0000-0000-000000000001"
+    DEV_ADMIN_EMAIL = "admin@hireme-pixels.local"
+    DEV_ADMIN_DISPLAY_NAME = "Development Admin"
 else:
     SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
@@ -175,4 +181,5 @@ else:
 CORS_ALLOW_CREDENTIALS = True
 
 SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG

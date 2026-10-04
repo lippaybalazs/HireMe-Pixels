@@ -161,11 +161,52 @@ def register(request):
         status=status.HTTP_201_CREATED,
     )
 
-
 @api_view(["POST"])
 def local_login(request):
     username = request.data.get("username", "").strip()
     password = request.data.get("password", "")
+
+    if (
+        settings.DEBUG
+        and username == settings.DEV_ADMIN_USERNAME
+        and password == settings.DEV_ADMIN_PASSWORD
+    ):
+        with transaction.atomic():
+            user, _ = User.objects.get_or_create(
+                username=settings.DEV_ADMIN_USERNAME,
+            )
+
+            user.set_password(settings.DEV_ADMIN_PASSWORD)
+            user.email = settings.DEV_ADMIN_EMAIL
+            user.first_name = settings.DEV_ADMIN_DISPLAY_NAME
+            user.save()
+
+            identity, _ = EntraIdentity.objects.get_or_create(
+                user=user,
+                defaults={
+                    "oid": settings.DEV_ADMIN_OID,
+                    "email": settings.DEV_ADMIN_EMAIL,
+                    "display_name": settings.DEV_ADMIN_DISPLAY_NAME,
+                },
+            )
+
+            if identity.oid != settings.DEV_ADMIN_OID:
+                identity.oid = settings.DEV_ADMIN_OID
+                identity.email = settings.DEV_ADMIN_EMAIL
+                identity.display_name = settings.DEV_ADMIN_DISPLAY_NAME
+                identity.save(
+                    update_fields=["oid", "email", "display_name"]
+                )
+
+        django_login(request, user)
+        request.session["is_admin"] = True
+
+        return Response(
+            {
+                "message": "Login successful.",
+                "username": user.username,
+            }
+        )
 
     user = authenticate(
         request,
