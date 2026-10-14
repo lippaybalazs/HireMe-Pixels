@@ -1,3 +1,8 @@
+data "azurerm_dns_zone" "lippay" {
+  name                = "lippay.ro"
+  resource_group_name = "lippay-dns"
+}
+
 resource "azurerm_dns_cname_record" "frontend" {
   count = var.deploy_apps ? 1 : 0
 

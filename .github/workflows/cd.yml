@@ -52,7 +52,6 @@ jobs:
       - name: Login to Azure Container Registry
         run: az acr login --name "${{ steps.acr.outputs.name }}"
 
-
       - name: Build backend image
         working-directory: .
         run: |
@@ -93,4 +92,8 @@ jobs:
             "${{ steps.acr.outputs.login_server }}/hireme-pixels-frontend:latest"
 
       - name: Terraform Apply Applications
-        run: terraform apply -auto-approve -var="deploy_apps=true" -var="deployment_id=${{ github.sha }}"
+        run: |
+          terraform apply \
+            -auto-approve \
+            -var="deploy_apps=true" \
+            -var="deployment_id=${{ github.sha }}"

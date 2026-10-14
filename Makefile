@@ -1,6 +1,7 @@
 K8S_CLUSTER := hireme-pixels
 K8S_CONFIG := k8s/kind-config.yaml
 
+# Container images
 BACKEND_IMAGE := hireme-pixels-backend:latest
 FRONTEND_IMAGE := hireme-pixels-frontend:latest
 
@@ -11,9 +12,12 @@ K8S_MANIFESTS := \
 	k8s/backend.yaml \
 	k8s/frontend.yaml
 
-.PHONY: start stop clean logs \
-	k8s-create k8s-build k8s-load k8s-apply k8s-wait k8s-stop k8s-clean \
-	stop-local
+.PHONY: start stop clean logs push-local apply-pre apply stop-local \
+	k8s-create k8s-build k8s-load k8s-apply k8s-wait k8s-stop k8s-clean
+
+# ---------------------------------------------------------------------------
+# Local lifecycle
+# ---------------------------------------------------------------------------
 
 start: stop stop-local k8s-create k8s-build k8s-load k8s-apply k8s-wait
 	@explorer.exe http://127.0.0.1:8080 || true
@@ -29,6 +33,14 @@ logs:
 	kubectl logs -l app=backend --tail=100
 	kubectl logs -l app=frontend --tail=100
 	kubectl logs postgres-0 --tail=100
+
+stop-local:
+	$(MAKE) -C backend stop
+	$(MAKE) -C frontend stop
+
+# ---------------------------------------------------------------------------
+# Kubernetes
+# ---------------------------------------------------------------------------
 
 k8s-create:
 	@if ! kind get clusters | grep -Fxq "$(K8S_CLUSTER)"; then \
@@ -69,9 +81,18 @@ k8s-stop:
 k8s-clean:
 	-kind delete cluster --name $(K8S_CLUSTER)
 
-stop-local:
-	$(MAKE) -C backend stop
-	$(MAKE) -C frontend stop
+# ---------------------------------------------------------------------------
+# Terraform
+# ---------------------------------------------------------------------------
+
+apply-pre:
+	terraform -chdir=terraform apply \
+		-var="deploy_apps=false"
+
+apply:
+	terraform -chdir=terraform apply \
+		-var="deploy_apps=true" \
+		-var="deployment_id=$$(date +%s)"
 
 push-local:
 	@ACR=$$(terraform -chdir=terraform output -raw acr_login_server); \
@@ -82,12 +103,3 @@ push-local:
 	docker push $$ACR/hireme-pixels-backend:latest; \
 	docker push $$ACR/hireme-pixels-frontend:latest; \
 	docker push $$ACR/hireme-pixels-redis:latest
-
-apply-pre:
-	terraform -chdir=terraform apply \
-		-var="deploy_apps=false"
-
-apply:
-	terraform -chdir=terraform apply \
-		-var="deploy_apps=true" \
-		-var="deployment_id=$$(date +%s)"
