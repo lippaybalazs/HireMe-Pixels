@@ -14,7 +14,7 @@ PYTHON ?= ${MAKEFILE_PATH}/.venv/bin/python
 
 .PHONY: start stop clean logs \
 	db-create db-start db-stop db-remove db-status db-logs db-shell \
-	migrate init check test \
+	migrate init makemigrations check test \
 	docker-build docker-run \
 	lint format
 
@@ -74,7 +74,6 @@ db-shell:
 # ---------------------------------------------------------------------------
 # Django
 # ---------------------------------------------------------------------------
-
 
 migrate:
 	docker exec $(BACKEND_CONTAINER) python manage.py migrate
