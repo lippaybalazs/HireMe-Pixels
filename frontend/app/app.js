@@ -752,6 +752,7 @@ pixelDialogToggle.addEventListener("click", () => {
             "aria-label",
             "Show toolbar"
         );
+        dialogElement.style.border = "none"
     } else {
         pixelDialogToggle.innerHTML =
             '<i class="fa-solid fa-arrow-down"></i>';
@@ -759,6 +760,7 @@ pixelDialogToggle.addEventListener("click", () => {
             "aria-label",
             "Hide toolbar"
         );
+        dialogElement.style.removeProperty("border");
     }
 });
 
