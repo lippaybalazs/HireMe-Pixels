@@ -1,7 +1,7 @@
 CONTAINER_NAME ?= hireme-pixels-frontend
 IMAGE_NAME ?= hireme-pixels-frontend
 
-.PHONY: start stop clean
+.PHONY: start stop clean logs
 
 start: stop
 	docker build -t $(IMAGE_NAME) .

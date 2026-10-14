@@ -1,74 +1,56 @@
+// ============================================================================
+// Application State
+// ============================================================================
+
 const API_URL = window.API_URL;
 
 let boardSocket = null;
 let boardSocketReconnectTimer = null;
-
 let currentUser = null;
 let authProvider = null;
 let csrfToken = null;
 let isAdmin = false;
-
 let boardWidth = 0;
 let boardHeight = 0;
 let board = [];
-
 let selectedPixel = null;
 let originalColor = null;
-
 let currentMode = "select";
-
 let pencilColor = localStorage.getItem("pencilColor") || "#ff0000";
 let isPainting = false;
 let paintingPixels = new Map();
+let selectedUser = null;
 
-let selected_user = null;
-
+// ============================================================================
+// DOM References
+// ============================================================================
 
 const boardElement = document.getElementById("board");
-
 const dialogElement = document.getElementById("pixel-dialog");
 const pixelDialogToggle = document.getElementById("pixel-dialog-toggle");
-
 const positionElement = document.getElementById("pixel-position");
 const userElement = document.getElementById("pixel-user");
-
 const colorPicker = document.getElementById("color-picker");
-
 const selectModeButton = document.getElementById("selectButton");
-
 const editModeButton = document.getElementById("editButton");
-
 const pencilModeButton = document.getElementById("pencilButton");
-
 const loginToolbarButton = document.getElementById("login-toolbar-button");
-
 const logoutToolbarButton = document.getElementById("logout-toolbar-button");
-
 const loginDialogElement = document.getElementById("login-dialog");
-
 const loginUsername = document.getElementById("login-username");
-
 const loginPassword = document.getElementById("login-password");
-
 const loginButton = document.getElementById("login-button");
-
 const registerButton = document.getElementById("register-button");
-
 const microsoftLoginButton = document.getElementById("microsoft-login-button");
-
 const loadingOverlay = document.getElementById("loading-overlay");
-
 const pixelInfo = document.getElementById("pixel-info");
-
 const pencilColorButton = document.getElementById("pencil-color-button");
-
 const pencilColorPicker = document.getElementById("pencil-color-picker");
-
 const banUserButton = document.getElementById("ban-user-button");
 
-/*
- * Authentication UI
- */
+// ============================================================================
+// Authentication UI
+// ============================================================================
 
 function showLoading() {
     loadingOverlay.classList.remove("hidden");
@@ -122,6 +104,10 @@ function updateAuthUI() {
         }
     }
 }
+
+// ============================================================================
+// Board WebSocket
+// ============================================================================
 
 function connectBoardWebSocket() {
     const apiUrl = new URL(API_URL);
@@ -182,9 +168,9 @@ function connectBoardWebSocket() {
     });
 }
 
-/*
- * Authentication state
- */
+// ============================================================================
+// Authentication State
+// ============================================================================
 
 async function loadCurrentUser() {
     const response = await fetch(`${API_URL}/auth/me/`, {
@@ -212,8 +198,8 @@ async function loadCurrentUser() {
         : false;
 
     authProvider = data.authenticated
-    ? data.auth_provider
-    : null;
+        ? data.auth_provider
+        : null;
 
     updateAuthUI();
     updateBanButton();
@@ -227,12 +213,13 @@ function updateBanButton() {
 
     banUserButton.disabled =
         !selectedPixel ||
-        !selected_user ||
-        currentUser === selected_user;
+        !selectedUser ||
+        currentUser === selectedUser;
 }
-/*
- * Board
- */
+
+// ============================================================================
+// Board Data and Painting
+// ============================================================================
 
 async function loadBoard() {
     const response = await fetch(`${API_URL}/pixels/`);
@@ -263,7 +250,6 @@ function startPainting(x, y) {
     paintPixel(x, y);
 }
 
-
 function paintPixel(x, y) {
     const key = `${x},${y}`;
 
@@ -285,7 +271,6 @@ function paintPixel(x, y) {
         pixel.style.backgroundColor = pencilColor;
     }
 }
-
 
 async function finishPainting() {
     if (!isPainting) {
@@ -312,7 +297,7 @@ async function finishPainting() {
                     "X-CSRFToken": csrfToken,
                 },
                 body: JSON.stringify({
-                    pixels: stroke.map(pixel => ({
+                    pixels: stroke.map((pixel) => ({
                         x: pixel.x,
                         y: pixel.y,
                         color: pencilColor,
@@ -349,7 +334,6 @@ async function finishPainting() {
                 element.style.backgroundColor = pixel.color;
             }
         }
-
     } catch (error) {
         console.error(error);
 
@@ -367,7 +351,6 @@ async function finishPainting() {
         alert(error.message);
     }
 }
-
 
 document.addEventListener("mouseup", () => {
     finishPainting();
@@ -424,10 +407,10 @@ function renderBoard() {
     }
 }
 
+// ============================================================================
+// Board Modes
+// ============================================================================
 
-/*
- * Modes
- */
 function setMode(mode) {
     /*
      * Edit is unavailable while logged out.
@@ -482,25 +465,21 @@ function setMode(mode) {
     updateBanButton();
 }
 
-
 selectModeButton.addEventListener("click", () => {
     setMode("select");
 });
-
 
 editModeButton.addEventListener("click", () => {
     setMode("edit");
 });
 
-
 pencilModeButton.addEventListener("click", () => {
     setMode("pencil");
 });
 
-
-/*
- * Pixel interaction
- */
+// ============================================================================
+// Pixel Interaction
+// ============================================================================
 
 async function handlePixelClick(x, y) {
     if (currentMode === "select") {
@@ -513,7 +492,6 @@ async function handlePixelClick(x, y) {
         return;
     }
 }
-
 
 async function selectPixel(x, y) {
     if (
@@ -553,7 +531,6 @@ async function selectPixel(x, y) {
         console.error(error);
     }
 }
-
 
 async function editPixel(x, y) {
     /*
@@ -677,33 +654,24 @@ async function savePixel(x, y, color) {
     }
 }
 
-
-/*
- * Pixel information
- */
+// ============================================================================
+// Pixel Selection and Information
+// ============================================================================
 
 function showPixelData(pixel) {
     if (pixel) {
-        positionElement.textContent =
-        `(${pixel.x} x ${pixel.y})`;
+        positionElement.textContent = `(${pixel.x} x ${pixel.y})`;
 
         userElement.textContent =
             pixel.display_name || pixel.user;
 
-        selected_user = pixel.user;
+        selectedUser = pixel.user;
     } else {
         positionElement.textContent = "";
         userElement.textContent = "";
-        selected_user = null;
+        selectedUser = null;
     }
-    
 }
-
-
-
-/*
- * Pixel selection border
- */
 
 function isDarkColor(hexColor) {
     const r = parseInt(
@@ -728,7 +696,6 @@ function isDarkColor(hexColor) {
 
     return luminance < 128;
 }
-
 
 function updateSelectedPixelBorder() {
     document
@@ -764,30 +731,30 @@ function updateSelectedPixelBorder() {
     );
 }
 
-
 function getPixelElement(x, y) {
     return boardElement.querySelector(
         `.pixel[data-x="${x}"][data-y="${y}"]`
     );
 }
 
-
-/*
- * Toolbar collapse / expand
- */
+// ============================================================================
+// Toolbar Collapse and Expand
+// ============================================================================
 
 pixelDialogToggle.addEventListener("click", () => {
     const collapsed =
         dialogElement.classList.toggle("collapsed");
 
     if (collapsed) {
-        pixelDialogToggle.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+        pixelDialogToggle.innerHTML =
+            '<i class="fa-solid fa-arrow-up"></i>';
         pixelDialogToggle.setAttribute(
             "aria-label",
             "Show toolbar"
         );
     } else {
-        pixelDialogToggle.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
+        pixelDialogToggle.innerHTML =
+            '<i class="fa-solid fa-arrow-down"></i>';
         pixelDialogToggle.setAttribute(
             "aria-label",
             "Hide toolbar"
@@ -795,15 +762,13 @@ pixelDialogToggle.addEventListener("click", () => {
     }
 });
 
-
-/*
- * Login
- */
+// ============================================================================
+// Login
+// ============================================================================
 
 loginToolbarButton.addEventListener("click", () => {
     showLoginDialog();
 });
-
 
 loginButton.addEventListener("click", async () => {
     showLoading();
@@ -842,10 +807,9 @@ loginButton.addEventListener("click", async () => {
     }
 });
 
-
-/*
- * Register
- */
+// ============================================================================
+// Register
+// ============================================================================
 
 registerButton.addEventListener("click", async () => {
     showLoading();
@@ -884,10 +848,9 @@ registerButton.addEventListener("click", async () => {
     }
 });
 
-
-/*
- * Microsoft login
- */
+// ============================================================================
+// Microsoft Login
+// ============================================================================
 
 microsoftLoginButton.addEventListener("click", () => {
     showLoading();
@@ -896,12 +859,12 @@ microsoftLoginButton.addEventListener("click", () => {
         `${API_URL}/auth/microsoft/`;
 });
 
-
-/*
- * Logout
- */
+// ============================================================================
+// Logout
+// ============================================================================
 
 logoutToolbarButton.addEventListener("click", async () => {
+
     showLoading();
 
     try {
@@ -909,6 +872,7 @@ logoutToolbarButton.addEventListener("click", async () => {
             `${API_URL}/auth/logout/`,
             {
                 method: "POST",
+
                 credentials: "include",
                 headers: {
                     "X-CSRFToken": csrfToken,
@@ -945,16 +909,16 @@ logoutToolbarButton.addEventListener("click", async () => {
     }
 });
 
-/*
- * Ban user
- */
+// ============================================================================
+// User Administration
+// ============================================================================
 
 banUserButton.addEventListener("click", async () => {
     if (
         !isAdmin ||
         !selectedPixel ||
-        !selected_user ||
-        currentUser === selected_user
+        !selectedUser ||
+        currentUser === selectedUser
     ) {
         return;
     }
@@ -970,7 +934,7 @@ banUserButton.addEventListener("click", async () => {
                     "X-CSRFToken": csrfToken,
                 },
                 body: JSON.stringify({
-                    username: selected_user,
+                    username: selectedUser,
                 }),
             }
         );
@@ -985,11 +949,10 @@ banUserButton.addEventListener("click", async () => {
 
         await loadBoard();
 
-        selected_user = null;
+        selectedUser = null;
         selectedPixel = null;
         updateBanButton();
-        showPixelData(selectedPixel)
-        
+        showPixelData(selectedPixel);
 
         alert(`User "${data.username}" has been banned.`);
 
@@ -1002,9 +965,9 @@ banUserButton.addEventListener("click", async () => {
     }
 });
 
-/*
- * Initialize
- */
+// ============================================================================
+// Initialization
+// ============================================================================
 
 async function initialize() {
     showLoading();
@@ -1032,7 +995,6 @@ async function initialize() {
         hideLoading();
     }
 }
-
 
 initialize().catch(error => {
     console.error(error);
