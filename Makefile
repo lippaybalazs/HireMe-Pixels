@@ -1,5 +1,6 @@
 K8S_CLUSTER := hireme-pixels
 K8S_CONFIG := k8s/kind-config.yaml
+TERRAFORM_WORKSPACE ?= local
 
 # Container images
 BACKEND_IMAGE := hireme-pixels-backend:latest
@@ -12,7 +13,7 @@ K8S_MANIFESTS := \
 	k8s/backend.yaml \
 	k8s/frontend.yaml
 
-.PHONY: start stop clean logs push-local apply-pre apply stop-local \
+.PHONY: start stop clean logs local-prepare local-push local-plan local-deploy stop-local \
 	k8s-create k8s-build k8s-load k8s-apply k8s-wait k8s-stop k8s-clean
 
 # ---------------------------------------------------------------------------
@@ -85,17 +86,19 @@ k8s-clean:
 # Terraform
 # ---------------------------------------------------------------------------
 
-apply-pre:
-	terraform -chdir=terraform apply \
+local-prepare:
+	TF_WORKSPACE="$(TERRAFORM_WORKSPACE)" terraform -chdir=terraform apply \
 		-var="deploy_apps=false"
 
-apply:
-	terraform -chdir=terraform apply \
+local-plan:
+	@TF_WORKSPACE="$(TERRAFORM_WORKSPACE)" terraform -chdir=terraform workspace show
+	TF_WORKSPACE="$(TERRAFORM_WORKSPACE)" terraform -chdir=terraform plan \
 		-var="deploy_apps=true" \
 		-var="deployment_id=$$(date +%s)"
 
-push-local:
-	@ACR=$$(terraform -chdir=terraform output -raw acr_login_server); \
+local-push:
+	@export TF_WORKSPACE="$(TERRAFORM_WORKSPACE)"; \
+	ACR=$$(terraform -chdir=terraform output -raw acr_login_server); \
 	az acr login --name $$(terraform -chdir=terraform output -raw acr_name); \
 	docker build -t $$ACR/hireme-pixels-backend:latest ./backend; \
 	docker build -t $$ACR/hireme-pixels-frontend:latest ./frontend; \
@@ -103,3 +106,8 @@ push-local:
 	docker push $$ACR/hireme-pixels-backend:latest; \
 	docker push $$ACR/hireme-pixels-frontend:latest; \
 	docker push $$ACR/hireme-pixels-redis:latest
+
+local-deploy:
+	TF_WORKSPACE="$(TERRAFORM_WORKSPACE)" terraform -chdir=terraform apply \
+		-var="deploy_apps=true" \
+		-var="deployment_id=$$(date +%s)"
